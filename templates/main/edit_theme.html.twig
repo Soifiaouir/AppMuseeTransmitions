@@ -1,0 +1,9 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ parent() }} | Modification de {{ theme.name }}{% endblock %}
+
+{% block body %}
+    {% embed 'views/form/form_template.html.twig' with {form : formTheme}%}
+        {% block formTitle %} Modifier le theme : {{ theme.name}} !{% endblock %}
+    {% endembed %}
+{% endblock %}

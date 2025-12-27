@@ -1,0 +1,9 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ parent() }} | Création d'un theme{% endblock %}
+
+{% block body %}
+    {% embed 'views/form/form_template.html.twig' with {form : formTheme}%}
+        {% block formTitle %} Creation d'un theme{% endblock %}
+    {% endembed %}
+{% endblock %}

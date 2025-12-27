@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ parent() }} | Acceuil{% endblock %}
+
+{% block body %}
+    <h1>Gestions des donnee du musée des transmitions</h1>
+
+    {% if themes|length == 0 %}
+        <p>Pas de thème dans la base de données</p>
+    {% else %}
+        <table>
+            <thead>
+            <tr>
+                <th>Nom du thème</th>
+                <th>Statut</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for theme in themes %}
+                <tr>
+                    <td>
+                        <a href="{{ path('details_theme', {'id': theme.id}) }}">
+                            {{ theme.name }}
+                        </a>
+                    </td>
+                    <td>
+                        {% if theme.isArchived() %}
+                            Archivé
+                        {% else %}
+                            Actif
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ path('edit_theme', {'id': theme.id}) }}" class="buttonEdit">Modifier</a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+    <a href="{{ path('add_theme') }}" class="buttonCreate">Créer un theme</a>
+{% endblock %}

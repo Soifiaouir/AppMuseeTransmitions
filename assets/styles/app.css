@@ -1,0 +1,98 @@
+/*h1-#1447E6 bleu* -> blue 800/
+/*h2-#1447E6 blue* -> blue 800/
+/*p-0A#0A0A noir* -> neutral 950/
+/*contour ou fond -#7CCF00 ->lime 500 vert ou
+jaune #FE9A00 ->amber 500 ou
+violet #9810FA* -> rose 500/
+/*                 --font-display - Mairiane (téléchargée en locale)*/
+
+@font-face {
+    font-family:"Marianne";
+    src : url("../fonts/Marianne-Regular.woff2") format(woff2);
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+
+}
+@font-face {
+    font-family:"Marianne";
+    src : url("../fonts/Marianne-Bold.woff2") format(woff2);
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family:"Marianne";
+    src : url("../fonts/Marianne-Bold_Italic.woff2") format(woff2);
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family:"Marianne";
+    src : url("../fonts/Marianne-Regular_Italic.woff2") format(woff2);
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
+body{
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    font-family:"Marianne", system-ui, Sans-serif;
+    color:#0A0A0A
+
+}
+h1,h2{
+    color:#1417E6;
+    margin-top: 1em;
+    font-family:"Marianne", system-ui, Sans-serif;
+    font-weight: 700;
+    text-align: center;
+}
+
+
+#head{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    background:#ECFCCA ;
+    border-radius: 0.2em;
+    /*box-shadow: 1px 1px 1px #0A0A0A;*/
+}
+nav{
+    text-align: center;
+}
+#logo{
+    width: 90px;
+    height:90px;
+}
+
+.buttonCreate{
+    background-color: #2563EB;
+    color: #dbeafe;
+}
+.buttonEdit{
+    background-color: #dbeafe;
+    color: #2563EB;
+}
+
+/*Forms*/
+.submitButton{
+    background-color: #1417E6;
+    color: #cccccc;
+}
+.formError{
+    color: red;
+}
+.formLabel{
+    background-color: #dbeafe;
+    border-block-color: #0A0A0A;
+    color: #0A0A0A;
+}
+.formWidget{
+    border: deeppink;
+}
