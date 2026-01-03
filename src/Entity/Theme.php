@@ -3,8 +3,10 @@
 namespace App\Entity;
 
 use App\Repository\ThemeRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;  // ← AJOUTÉ
+use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: ThemeRepository::class)]
@@ -22,16 +24,32 @@ class Theme
     private ?string $name = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
-    private ?\DateTimeImmutable $dateofcreation = null;
+    private ?\DateTimeImmutable $dateOfCreation = null;
 
     #[ORM\Column(type: 'boolean')]
     private bool $archived = false;
 
+    /**
+     * @var Collection<int, Card>
+     */
+    #[ORM\OneToMany(targetEntity: Card::class, mappedBy: 'theme', orphanRemoval: true)]
+    private Collection $cards;
+
+    /**
+     * @var Collection<int, Color>
+     */
+    #[ORM\ManyToMany(targetEntity: Color::class, inversedBy: 'themes')]
+    #[ORM\JoinTable(name: 'theme_color')]
+    private Collection $colors;
+
     public function __construct()
     {
         $this->archived = false;
-        $this->dateofcreation = new \DateTimeImmutable();
+        $this->dateOfCreation = new \DateTimeImmutable();
+        $this->cards = new ArrayCollection();
+        $this->colors = new ArrayCollection();
     }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -42,28 +60,24 @@ class Theme
         return $this->name;
     }
 
-    public function setName(string $name): static  // ← $name minuscule
+    public function setName(string $name): static
     {
         $this->name = $name;
         return $this;
     }
 
-    public function getDateofcreation(): ?\DateTimeImmutable  // ← MINUSCULE
+    public function getDateOfCreation(): ?\DateTimeImmutable
     {
-        return $this->dateofcreation;
+        return $this->dateOfCreation;
     }
-    /**
-     * Setter direct : date de création = AUJOURD'HUI
-     * Usage : $theme->setDateCreationToday();
-     */
-    public function setDateCreationToday(): self
+
+    public function setDateOfCreation(): self
     {
-        $this->dateofcreation = new \DateTimeImmutable();
+        $this->dateOfCreation = new \DateTimeImmutable();
         return $this;
     }
 
-
-    public function isArchived(): bool  // ← bool (pas ?bool)
+    public function isArchived(): bool
     {
         return $this->archived;
     }
@@ -73,4 +87,66 @@ class Theme
         $this->archived = $archived;
         return $this;
     }
+
+    /**
+     * @return Collection<int, Card>
+     */
+    public function getCards(): Collection
+    {
+        return $this->cards;
+    }
+
+    public function addCard(Card $card): static
+    {
+        if (!$this->cards->contains($card)) {
+            $this->cards->add($card);
+            $card->setTheme($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCard(Card $card): static
+    {
+        if ($this->cards->removeElement($card)) {
+            if ($card->getTheme() === $this) {
+                $card->setTheme(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Color>
+     */
+    public function getColors(): Collection
+    {
+        return $this->colors;
+    }
+
+    public function addColor(Color $color): static
+    {
+        if (!$this->colors->contains($color)) {
+            $this->colors->add($color);
+            $color->addTheme($this);
+        }
+
+        return $this;
+    }
+
+    public function removeColor(Color $color): static
+    {
+        if ($this->colors->removeElement($color)) {
+            $color->removeTheme($this);
+        }
+
+        return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->name ?? '';
+    }
+
 }

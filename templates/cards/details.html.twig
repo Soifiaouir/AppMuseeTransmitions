@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h2>Détail de la {{ card.title }}</h2>
+    <h3>THEME : {{ card.theme.name }}</h3>
+    <p>{{ card.detail }}</p>
+    {% if card.moreInfoTitle != null %}
+        <h3>Informations Complémentaire <br>
+            {{ card.moreInfoTitle }}</h3>
+        <p>{{ card.moreInfoDetails }}</p>
+    {% endif %}
+    <a href="{{ path('cards_edit', {'id': card.id}) }}"><button class="buttonEdit">Modifier la carte</button></a>
+    <a href="{{ path('cards_delete', {'id': card.id}) }}"><button class="buttonRemove">Supprimer la carte</button></a>
+{% endblock %}
+
+{% block title %}
+    {{ parent() }} | Détail de la {{ card.title }}
+{% endblock %}
+

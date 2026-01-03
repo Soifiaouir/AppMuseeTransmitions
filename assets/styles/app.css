@@ -79,6 +79,10 @@ nav{
     background-color: #dbeafe;
     color: #2563EB;
 }
+.buttonRemove{
+    background-color: #0A0A0A;
+    color: #dbeafe;
+}
 
 /*Forms*/
 .submitButton{
@@ -95,4 +99,15 @@ nav{
 }
 .formWidget{
     border: deeppink;
+}
+.ligne{
+    display: flex;
+    flex-direction: row;
+}
+.pastilleCouleure {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%; /* pour un rond */
+    border: 2px solid #ccc; /* bordure pour mieux voir */
+    display: inline-block;
 }
