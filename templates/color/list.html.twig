@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h2>Liste des couleurs</h2>
+    {% if colors|length == 0 %}
+        <p>Pas de couleur dans la base de donnée</p>
+    {% else %}
+        {% for color in colors %}
+            <div class="ligne">
+                <p>{{ color.name }}</p>
+                <div class="pastilleCouleure" style="background-color: {{ color.colorCode }};"></div>
+                <a href="{{ path('color_edit', {'id': color.id}) }}"><button class="buttonEdit">Modifier la couleur</button></a>
+                <a href="{{ path('color_remove', {'id': color.id}) }}"><button class="buttonRemove">Supprimer la couleur</button></a>
+            </div>
+        {% endfor %}
+    {% endif %}
+    <a href="{{ path('color_add') }}">
+        <button class="buttonCreate">Ajouter une couleur</button>
+    </a>
+{% endblock %}
+
+{% block title %}
+    {{ parent() }} Listes des couleurs
+{% endblock %}

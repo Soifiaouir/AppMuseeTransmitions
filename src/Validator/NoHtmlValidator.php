@@ -8,11 +8,15 @@ use Symfony\Component\Validator\ConstraintValidator;
 
 class NoHtmlValidator extends ConstraintValidator
 {
-    public function __construct(private InputSanitizer $sanitizer) {}
+    public function __construct()
+    {
+    }
 
     public function validate($value, Constraint $constraint): void
     {
-        if ($this->sanitizer->containsDangerousContent($value)) {
+        $sanitizer = new InputSanitizer();
+
+        if ($sanitizer->containsDangerousContent($value)) {
             $this->context->buildViolation($constraint->message)
                 ->addViolation();
         }

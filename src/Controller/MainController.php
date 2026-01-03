@@ -21,7 +21,7 @@ final class MainController extends AbstractController
     #[Route('/', name: 'home')]
     public function home(): Response
     {
-        $themes =$this->themeRepository->findBy(['archived' => false], ['dateofcreation' => 'DESC']);
+        $themes =$this->themeRepository->findBy(['archived' => false], ['dateOfCreation' => 'DESC']);
 
         return $this->render('main/home.html.twig', [
             'themes' => $themes,

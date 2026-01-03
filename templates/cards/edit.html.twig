@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    {% embed 'views/form/form_template.html.twig' with {form : formCard}%}
+        {% block formTitle %} Modifier la carte : {{ card.title}} !{% endblock %}
+    {% endembed %}
+{% endblock %}
+
+{% block title %}
+    {{ parent() }} || Modification de {{ card.title }}
+{% endblock %}
+

@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    {{ parent() }} | Ajout d'une couleur
+{% endblock %}
+
+{% block body %}
+    {% embed 'views/form/form_template.html.twig' with {form : formColor}%}
+        {% block formTitle %} Ajout d'une couleur{% endblock %}
+    {% endembed %}
+{% endblock %}
+
