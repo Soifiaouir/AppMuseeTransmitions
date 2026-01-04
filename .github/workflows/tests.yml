@@ -1,52 +1,35 @@
-name: Tests Symfony 6.4
+name: Tests Docker Hub
 
 on:
-  pull_request:
+  push:
     branches: [ master ]
 
 jobs:
   tests:
     runs-on: ubuntu-latest
-    
     services:
       mariadb:
         image: mariadb:11.8
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: test
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
         ports:
           - 3306:3306
-        options: --health-cmd="mariadb-admin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: --health-cmd="mariadb-admin ping" --health-interval=10s
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup PHP 8.4
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.4'
-        extensions: apache2handler,pdo_mysql,mysql
-
-    - name: Cache Composer
-      uses: actions/cache@v4
-      with:
-        path: vendor
-        key: composer-${{ hashFiles('composer.lock') }}
-
-    - name: Install Composer deps
-      run: composer install --no-progress --no-interaction --optimize-autoloader
-
-    - name: Copy .env.test
-      run: cp .env.test .env || cp .env.test.local .env.test
-
-    - name: Create test DB
+    - name: Docker login & tests
+      env:
+        IMAGE: ${{ secrets.DOCKER_REPOSITORY }}:latest
       run: |
-        php bin/console doctrine:database:create --env=test --no-interaction
-        php bin/console doctrine:migrations:migrate --no-interaction --env=test
-
-    - name: Run PHPUnit
-      run: php bin/phpunit --colors=always --coverage-text
-
-    - name: Check Symfony console
-      run: php bin/console --version
+        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+        docker pull $IMAGE
+        docker run --rm -v $(pwd):/app -w /app --network=host $IMAGE \
+          sh -c "
+            composer install --no-interaction &&
+            php bin/console doctrine:database:create --env=test --no-interaction &&
+            php bin/console doctrine:migrations:migrate --env=test --no-interaction &&
+            php bin/phpunit --colors=always
+          "
