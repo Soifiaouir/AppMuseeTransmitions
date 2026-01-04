@@ -1,7 +1,101 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ parent() }} | Détail de {{ theme.id }}{% endblock %}
+{% block title %}{{ parent() }} | Détail de {{ theme.name }}{% endblock %}
 
 {% block body %}
-  <h2>{{ theme.name }}</h2>
+    <div class="theme-detail-container">
+        {# En-tête avec fond d'image si présent #}
+        <div class="theme-header">
+            {% if theme.backgroundImage %}
+                <div class="theme-background"
+                     style="background-image: url('{{ asset('uploads/media/' ~ theme.backgroundImage.filePath) }}');">
+                </div>
+            {% endif %}
+            <div class="theme-title-overlay">
+                <h1>{{ theme.name }}</h1>
+                <p>{{ theme.description ?? 'Pas de description' }}</p>
+            </div>
+        </div>
+
+        {# Charte graphique (couleurs, etc.) #}
+        <section class="charte-graphique">
+            <h2>Charte graphique</h2>
+            {% if theme.colors|length > 0 %}
+                <div class="colors-grid">
+                    {% for color in theme.colors %}
+                        <div class="color-sample"
+                             style="background-color: {{ color.hexCode }};"
+                             title="{{ color.name }} ({{ color.hexCode }})">
+                            <span>{{ color.name }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>Aucune couleur définie dans la charte.</p>
+            {% endif %}
+        </section>
+
+        {# Cartes du thème #}
+        {% if theme.cards|length > 0 %}
+            <section class="theme-cards">
+                <h2>{{ theme.cards|length }} carte{{ theme.cards|length > 1 ? 's' }} dans ce thème</h2>
+                <div class="cards-grid">
+                    {% for card in theme.cards %}
+                        <article class="card-preview"
+                                 style="{% if theme.backgroundImage %}background-image: url('{{ asset('uploads/media/' ~ theme.backgroundImage.filePath) }}');{% endif %}">
+                            <div class="card-content">
+                                <h3>{{ card.title }}</h3>
+                                <p>{{ card.description|slice(0, 100) ~ '...' }}</p>
+                                <a href="{{ path('cards_details', {'id': card.id}) }}" class="card-link">Voir la carte</a>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+        {% else %}
+            <section class="no-cards">
+                <h2>Aucune carte dans ce thème</h2>
+                <p>Créez la première carte pour ce thème.</p>
+            </section>
+        {% endif %}
+
+        {# Médias du thème #}
+        {% if theme.medias|length > 0 %}
+            <section class="theme-medias">
+                <h2>Médias associés ({{ theme.medias|length }})</h2>
+                <div class="medias-grid">
+                    {% for media in theme.medias %}
+                        <div class="media-item">
+                            {% if media.type == 'image' %}
+                                <img src="{{ asset('uploads/media/' ~ media.filePath) }}"
+                                     alt="{{ media.userGivenName }}"
+                                     loading="lazy">
+                            {% elseif media.type == 'video' %}
+                                <video poster="{{ asset('uploads/media/' ~ media.filePath) }}"
+                                       loading="lazy">
+                                    <source src="{{ asset('uploads/media/' ~ media.filePath) }}"
+                                            type="video/{{ media.extensionFile }}">
+                                </video>
+                            {% else %}
+                                <div class="media-icon audio">{{ media.type|upper }}</div>
+                            {% endif %}
+                            <p>{{ media.userGivenName }}</p>
+                            <a href="{{ path('media_detail', {'id': media.id}) }}">Détails</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        {% else %}
+            <section class="no-medias">
+                <h2>Aucun média associé</h2>
+                <p>Ajoutez des médias à ce thème.</p>
+            </section>
+        {% endif %}
+
+        {# Actions #}
+        <div class="theme-actions">
+            <a href="{{ path('themes_edit', {'id': theme.id}) }}" class="buttonEdit">Modifier le thème</a>
+            <a href="{{ path('themes_list') }}" class="buttonBack">Retour à la liste des thèmes</a>
+        </div>
+    </div>
 {% endblock %}
