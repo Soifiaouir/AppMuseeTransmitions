@@ -42,12 +42,22 @@ class Theme
     #[ORM\JoinTable(name: 'theme_color')]
     private Collection $colors;
 
+    /**
+     * @var Collection<int, Media>
+     */
+    #[ORM\ManyToMany(targetEntity: Media::class, mappedBy: 'themes')]
+    private Collection $medias;
+
+    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    private ?Media $backgroundImage = null;
+
     public function __construct()
     {
         $this->archived = false;
         $this->dateOfCreation = new \DateTimeImmutable();
         $this->cards = new ArrayCollection();
         $this->colors = new ArrayCollection();
+        $this->medias = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -147,6 +157,45 @@ class Theme
     public function __toString(): string
     {
         return $this->name ?? '';
+    }
+
+    /**
+     * @return Collection<int, Media>
+     */
+    public function getMedias(): Collection
+    {
+        return $this->medias;
+    }
+
+    public function addMedia(Media $media): static
+    {
+        if (!$this->medias->contains($media)) {
+            $this->medias->add($media);
+            $media->addTheme($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMedia(Media $media): static
+    {
+        if ($this->medias->removeElement($media)) {
+            $media->removeTheme($this);
+        }
+
+        return $this;
+    }
+
+    public function getBackgroundImage(): ?Media
+    {
+        return $this->backgroundImage;
+    }
+
+    public function setBackgroundImage(?Media $backgroundImage): static
+    {
+        $this->backgroundImage = $backgroundImage;
+
+        return $this;
     }
 
 }

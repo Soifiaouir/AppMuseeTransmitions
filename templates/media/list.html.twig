@@ -1,0 +1,64 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ parent() }} | Liste des médias{% endblock %}
+
+{% block body %}
+    <h2>Gestion des médias du musée</h2>
+
+    {% if medias|length == 0 %}
+        <p>Pas de média dans la base de données</p>
+    {% else %}
+        <table>
+            <thead>
+            <tr>
+                <th>Aperçu</th>
+                <th>Nom original</th>
+                <th>Type</th>
+                <th>Taille</th>
+                <th>Date d'upload</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for media in medias %}
+                <tr>
+                    <td>
+                        {% if media.type == 'image' %}
+                            <img src="{{ asset('uploads/media/' ~ media.type ~ '/' ~ media.fullFileName) }}"
+                                 alt="{{ media.userGivenName }}"
+                                 style="max-width: 15%; height: auto;">
+                        {% elseif media.type == 'video' %}
+                            🎥
+                        {% elseif media.type == 'audio' %}
+                            🔊
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ path('media_detail', {'id': media.id}) }}">
+                            {{ media.userGivenName }}
+                        </a>
+                    </td>
+                    <td>{{ media.type }}</td>
+                    <td>
+                        {% if media.size %}
+                            {{ (media.size / 1024 / 1024)|number_format(2) }} MB
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                    <td>{{ media.uploadedAt|date('d/m/Y H:i') }}</td>
+                    <td>
+                        <a href="{{ path('media_edit', {'id': media.id}) }}" class="buttonEdit">Modifier</a>
+                        <a href="{{ path('media_remove', {'id': media.id}) }}"
+                           class="buttonDelete"
+                           onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce média ?');">
+                            Supprimer
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+    <a href="{{ path('media_add') }}" class="buttonCreate">Ajouter un média</a>
+{% endblock %}

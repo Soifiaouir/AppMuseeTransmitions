@@ -7,9 +7,11 @@ use App\Entity\Color;  // ← AJOUT MANQUANT
 use App\Repository\ColorRepository;  // ← AJOUT MANQUANT
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\File;
 
 class ThemeType extends AbstractType
 {
@@ -25,6 +27,18 @@ class ThemeType extends AbstractType
                 'query_builder' => function (ColorRepository $repo) {
                     return $repo->createQueryBuilder('c')->orderBy('c.name', 'ASC');
                 },
+            ])
+            ->add('backgroundImageFile', FileType::class, [
+                'label' => 'Image de fond',
+                'mapped' => false,  // Ne mappe PAS sur l'entité
+                'required' => false,
+                'constraints' => [
+                    new File([
+                        'maxSize' => '10M',
+                        'mimeTypes' => ['image/*'],
+                        'mimeTypesMessage' => 'Image uniquement',
+                    ])
+                ],
             ])
             ->add('archived')
             ->add('submit', SubmitType::class, [
