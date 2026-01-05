@@ -1,0 +1,113 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ parent() }} | Acceuil{% endblock %}
+
+{% block body %}
+    <div class="dashboard">
+        <div>
+            <h2>Gestion des utilisateurs</h2>
+
+            {% if users|length == 0 %}
+                <p>Aucun utilisateur dans la base de données</p>
+            {% else %}
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Pseudo</th>
+                        <th>Email</th>
+                        <th>Rôle(s)</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for user in users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                {% if 'ROLE_ADMIN' in user.roles %}
+                                    Admin
+                                {% else %}
+                                    Utilisateur
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.isVerified %}
+                                    Vérifié
+                                {% else %}
+                                    Non vérifié
+                                {% endif %}
+                            </td>
+                            <td>
+{#                                <a href="{{ path('admin_edit_user', {'id': user.id}) }}">Modifier</a>#}
+{#                                <a href="{{ path('admin_delete_user', {'id': user.id}) }}"#}
+{#                                   onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')">Supprimer</a>#}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
+            <a href="{{ path('admin_add_user') }}">Créer un utilisateur</a>
+        </div>
+
+        <hr>
+
+        {# Section Thèmes #}
+        <div>
+            <h2>Gestion des thèmes</h2>
+
+            {% if themes|length == 0 %}
+                <p>Aucun thème dans la base de données</p>
+            {% else %}
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Nom du thème</th>
+                        <th>Créé par</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for theme in themes %}
+                        <tr>
+                            <td>
+                                <a href="{{ path('details_theme', {'id': theme.id}) }}">
+                                    {{ theme.name }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if theme.createdBy %}
+                                    {{ theme.createdBy.username }}
+                                {% else %}
+                                    <em>Non défini</em>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if theme.isArchived() %}
+                                    Archivé
+                                {% else %}
+                                    Actif
+                                {% endif %}
+                            </td>
+{#                            <td>#}
+{#                                <a href="{{ path('edit_theme', {'id': theme.id}) }}">Modifier</a>#}
+{#                                {% if not theme.isArchived() %}#}
+{#                                    <a href="{{ path('archive_theme', {'id': theme.id}) }}">Archiver</a>#}
+{#                                {% else %}#}
+{#                                    <a href="{{ path('unarchive_theme', {'id': theme.id}) }}">Désarchiver</a>#}
+{#                                {% endif %}#}
+{#                            </td>#}
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
+            <a href="{{ path('add_theme') }}">Créer un thème</a>
+        </div>
+    </div>
+{% endblock %}

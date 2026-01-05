@@ -51,6 +51,9 @@ class Theme
     #[ORM\OneToOne(cascade: ['persist', 'remove'])]
     private ?Media $backgroundImage = null;
 
+    #[ORM\ManyToOne(inversedBy: 'themes')]
+    private ?User $createdBy = null;
+
     public function __construct()
     {
         $this->archived = false;
@@ -194,6 +197,18 @@ class Theme
     public function setBackgroundImage(?Media $backgroundImage): static
     {
         $this->backgroundImage = $backgroundImage;
+
+        return $this;
+    }
+
+    public function getCreatedBy(): ?User
+    {
+        return $this->createdBy;
+    }
+
+    public function setCreatedBy(?User $createdBy): static
+    {
+        $this->createdBy = $createdBy;
 
         return $this;
     }
