@@ -19,4 +19,4 @@
 /assets/vendor/
 ###< symfony/asset-mapper ###
 ###/upload
-/public/upload
+/public/uploads

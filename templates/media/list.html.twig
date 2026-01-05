@@ -24,9 +24,9 @@
                 <tr>
                     <td>
                         {% if media.type == 'image' %}
-                            <img src="{{ asset('uploads/media/' ~ media.filePath) }}"
+                            <img src="{{ asset('uploads/media/' ~ media.type ~ '/' ~ media.fullFileName) }}"
                                  alt="{{ media.userGivenName }}"
-                                 style="max-width: 100px; max-height: 100px;">
+                                 style="max-width: 15%; height: auto;">
                         {% elseif media.type == 'video' %}
                             🎥
                         {% elseif media.type == 'audio' %}

@@ -13,19 +13,18 @@
             {% endif %}
             <div class="theme-title-overlay">
                 <h1>{{ theme.name }}</h1>
-                <p>{{ theme.description ?? 'Pas de description' }}</p>
             </div>
         </div>
 
         {# Charte graphique (couleurs, etc.) #}
-        <section class="charte-graphique">
+        <div class="charte-graphique">
             <h2>Charte graphique</h2>
             {% if theme.colors|length > 0 %}
                 <div class="colors-grid">
                     {% for color in theme.colors %}
                         <div class="color-sample"
-                             style="background-color: {{ color.hexCode }};"
-                             title="{{ color.name }} ({{ color.hexCode }})">
+                             style="background-color: {{ color.colorCode }};"
+                             title="{{ color.name }} ({{ color.colorCode }})">
                             <span>{{ color.name }}</span>
                         </div>
                     {% endfor %}
@@ -33,11 +32,11 @@
             {% else %}
                 <p>Aucune couleur définie dans la charte.</p>
             {% endif %}
-        </section>
+        </div>
 
         {# Cartes du thème #}
         {% if theme.cards|length > 0 %}
-            <section class="theme-cards">
+            <div class="theme-cards">
                 <h2>{{ theme.cards|length }} carte{{ theme.cards|length > 1 ? 's' }} dans ce thème</h2>
                 <div class="cards-grid">
                     {% for card in theme.cards %}
@@ -45,23 +44,23 @@
                                  style="{% if theme.backgroundImage %}background-image: url('{{ asset('uploads/media/' ~ theme.backgroundImage.filePath) }}');{% endif %}">
                             <div class="card-content">
                                 <h3>{{ card.title }}</h3>
-                                <p>{{ card.description|slice(0, 100) ~ '...' }}</p>
+                                <p>{{ card.detail|slice(0, 100) ~ '...' }}</p>
                                 <a href="{{ path('cards_details', {'id': card.id}) }}" class="card-link">Voir la carte</a>
                             </div>
                         </article>
                     {% endfor %}
                 </div>
-            </section>
+            </div>
         {% else %}
-            <section class="no-cards">
+            <div class="no-cards">
                 <h2>Aucune carte dans ce thème</h2>
                 <p>Créez la première carte pour ce thème.</p>
-            </section>
+            </div>
         {% endif %}
 
         {# Médias du thème #}
         {% if theme.medias|length > 0 %}
-            <section class="theme-medias">
+            <div class="theme-medias">
                 <h2>Médias associés ({{ theme.medias|length }})</h2>
                 <div class="medias-grid">
                     {% for media in theme.medias %}
@@ -84,18 +83,18 @@
                         </div>
                     {% endfor %}
                 </div>
-            </section>
+            </div>
         {% else %}
-            <section class="no-medias">
+            <div class="no-medias">
                 <h2>Aucun média associé</h2>
                 <p>Ajoutez des médias à ce thème.</p>
-            </section>
+            </div>
         {% endif %}
 
         {# Actions #}
         <div class="theme-actions">
-            <a href="{{ path('themes_edit', {'id': theme.id}) }}" class="buttonEdit">Modifier le thème</a>
-            <a href="{{ path('themes_list') }}" class="buttonBack">Retour à la liste des thèmes</a>
+            <a href="{{ path('edit_theme', {'id': theme.id}) }}" class="buttonEdit">Modifier le thème</a>
+            <a href="{{ path('home') }}" class="buttonBack">Retour à la liste des thèmes</a>
         </div>
     </div>
 {% endblock %}
