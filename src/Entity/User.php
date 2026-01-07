@@ -24,7 +24,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 180)]
-    #[Assert\NotBlank(message: 'Pseudo obligatoire')]  // ← Ajout de "message:"
+    #[Assert\NotBlank(message: 'Pseudo obligatoire')]
     #[NoHtml]
     private ?string $username = null;
 
@@ -39,22 +39,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\Column]
     #[NoHtml]
-    #[Assert\NotBlank(message: 'Mot de passe obligatoire')]  // ← Ajout de "message:"
     private ?string $password = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Email(message: 'Email invalide')]  // ← Ajout de "message:"
-    #[NoHtml]
-    private ?string $email = null;
-
-    #[ORM\Column]
-    private bool $isVerified = false;
-
     /**
      * @var Collection<int, Theme>
      */
     #[ORM\OneToMany(targetEntity: Theme::class, mappedBy: 'createdBy')]
     private Collection $themes;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $passwordChange = true;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $passwordChangeDate = null;
+
 
     public function __construct()
     {
@@ -125,36 +122,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    #[\Deprecated]
-    public function eraseCredentials(): void
-    {
-        // @deprecated, to be removed when upgrading to Symfony 8
-    }
-
-    public function getEmail(): ?string
-    {
-        return $this->email;
-    }
-
-    public function setEmail(?string $email): static
-    {
-        $this->email = $email;
-
-        return $this;
-    }
-
-    public function isVerified(): bool
-    {
-        return $this->isVerified;
-    }
-
-    public function setIsVerified(bool $isVerified): static
-    {
-        $this->isVerified = $isVerified;
-
-        return $this;
-    }
-
     /**
      * @return Collection<int, Theme>
      */
@@ -184,4 +151,34 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
+
+    public function eraseCredentials()
+    {
+        // TODO: Implement eraseCredentials() method.
+    }
+
+    public function isPasswordChange(): ?bool
+    {
+        return $this->passwordChange;
+    }
+
+    public function setPasswordChange(?bool $passwordChange): static
+    {
+        $this->passwordChange = $passwordChange;
+
+        return $this;
+    }
+
+    public function getPasswordChangeDate(): ?\DateTime
+    {
+        return $this->passwordChangeDate;
+    }
+
+    public function setPasswordChangeDate(?\DateTime $passwordChangeDate): static
+    {
+        $this->passwordChangeDate = $passwordChangeDate;
+
+        return $this;
+    }
+
 }

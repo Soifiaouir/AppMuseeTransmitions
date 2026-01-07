@@ -32,7 +32,9 @@ final class MainController extends AbstractController
     public function add(Request $request): Response
     {
         $theme = new Theme();
-        $formTheme = $this->createForm(ThemeType::class, $theme);
+        $formTheme = $this->createForm(ThemeType::class, $theme,
+            ['is_admin' => $this->isGranted('ROLE_ADMIN')]
+        );
         $formTheme->handleRequest($request);
 
         if ($formTheme->isSubmitted() && $formTheme->isValid()) {
@@ -86,12 +88,28 @@ final class MainController extends AbstractController
      * @return Response
      * Seul un admin est autoriser à supprimer un thème
      */
-    #[Route('/theme/delete/{id}', name: 'delete_theme', requirements: ['id' => '\d+'])]
-    public function delete(Theme $theme): Response
+    #[Route('/theme/remove/{id}', name: 'remove_theme', requirements: ['id' => '\d+'])]
+    public function remove(Theme $theme): Response
     {
     $this->em->remove($theme);
     $this->em->flush();
     $this->addFlash('success', 'Theme '.$theme->getName().' bien supprimer.');
                 return $this->redirectToRoute('home');
+    }
+
+    #[Route('/theme/archive/{id}', name: 'archive_theme', requirements: ['id' => '\d+'])]
+    public function archive(Theme $theme): Response{
+        $theme->setArchived(true);
+        $this->em->persist($theme);
+        $this->em->flush();
+        return $this->redirectToRoute('admin_dashboard');
+    }
+
+    #[Route('/theme/un_archive/{id}', name: 'unarchive_theme', requirements: ['id' => '\d+'])]
+    public function unarchive(Theme $theme): Response{
+        $theme->setArchived(false);
+        $this->em->persist($theme);
+        $this->em->flush();
+        return $this->redirectToRoute('admin_dashboard');
     }
 }

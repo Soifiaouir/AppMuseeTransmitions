@@ -5,9 +5,11 @@ namespace App\Form;
 use App\Entity\User;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
+use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -26,25 +28,21 @@ class RegistrationFormType extends AbstractType
                     'placeholder' => 'Votre pseudo'
                 ]
             ])
-            ->add('email', EmailType::class, [
-                'label' => 'Email',
-                'attr' => [
-                    'placeholder' => 'votre@email.com'
-                ]
-            ])
             ->add('plainPassword', RepeatedType::class, [
                 'type' => PasswordType::class,
                 'mapped' => false,
                 'first_options' => [
-                    'label' => 'Mot de passe',
+                    'label' => 'Mot de passe temporaire',
                     'attr' => [
+                        'class' => 'password-field',
                         'autocomplete' => 'new-password',
-                        'placeholder' => 'Minimum 6 caractères'
+                        'placeholder' => 'Minimum 8 caractères'
                     ]
                 ],
                 'second_options' => [
                     'label' => 'Confirmer le mot de passe',
                     'attr' => [
+                        'class' => 'password-field',
                         'autocomplete' => 'new-password',
                         'placeholder' => 'Retapez votre mot de passe'
                     ]
@@ -55,11 +53,21 @@ class RegistrationFormType extends AbstractType
                         'message' => 'Veuillez entrer un mot de passe',
                     ]),
                     new Length([
-                        'min' => 6,
+                        'min' => 8,
                         'minMessage' => 'Votre mot de passe doit contenir au moins {{ limit }} caractères',
                         'max' => 4096,
                     ]),
                 ],
+            ])
+            ->add('roles', ChoiceType::class, [
+                'label' => 'Rôle',
+                'choices' => [
+                    'Utilisateur' => 'ROLE_USER',
+                    'Administrateur' => 'ROLE_ADMIN',
+                ],
+                'multiple' => true,
+                'expanded' => true,
+                'required' => false,
             ])
             ->add('agreeTerms', CheckboxType::class, [
                 'label' => 'J\'accepte les conditions d\'utilisation',
@@ -69,6 +77,10 @@ class RegistrationFormType extends AbstractType
                         'message' => 'Vous devez accepter les conditions d\'utilisation.',
                     ]),
                 ],
+            ])
+            ->add('submit', SubmitType::class, [
+                'label' => 'Ajouter un utilisateur',
+                'attr' => ['class' => 'submitButton']
             ])
         ;
     }

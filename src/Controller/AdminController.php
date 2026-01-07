@@ -2,110 +2,129 @@
 
 namespace App\Controller;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Routing\Attribute\Route;
-use App\Security\EmailVerifier;
 use App\Entity\User;
 use App\Form\RegistrationFormType;
 use App\Repository\UserRepository;
 use App\Repository\ThemeRepository;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Bundle\SecurityBundle\Security;
+use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Random\RandomException;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Mime\Address;
-use Symfony\Contracts\Translation\TranslatorInterface;
-use SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface;
-
-
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/', name: 'admin_')]
-
 final class AdminController extends AbstractController
 {
-    public function __construct(private readonly EntityManagerInterface $em,
-    private readonly UserPasswordHasherInterface $passwordHasher,
-    private readonly UserRepository $userRepository,
-                                private EmailVerifier $emailVerifier){}
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly UserRepository $userRepository
+    ) {
+    }
 
     #[Route('/dashboard', name: 'dashboard')]
     public function dashbord(ThemeRepository $themeRepository): Response
     {
         $users = $this->userRepository->findAll();
         $themes = $themeRepository->findAll();
-        return $this->render('admin/dashboard.html.twig',
-            [
-                'users' => $users,
-                'themes' => $themes
-            ]);
+
+        return $this->render('admin/dashboard.html.twig', [
+            'users' => $users,
+            'themes' => $themes
+        ]);
     }
+
     #[Route('/user/add', name: 'add_user')]
-    public function addUser(Request $request, Security $security): Response
+    public function addUser(Request $request): Response
     {
         $user = new User();
-        $form = $this->createForm(RegistrationFormType::class, $user);
-        $form->handleRequest($request);
+        $formRegistration = $this->createForm(RegistrationFormType::class, $user);
+        $formRegistration->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($formRegistration->isSubmitted() && $formRegistration->isValid()) {
             /** @var string $plainPassword */
-            $plainPassword = $form->get('plainPassword')->getData();
+            $plainPassword = $formRegistration->get('plainPassword')->getData();
 
-            // Encoder le mot de passe
+            // Encoder le mot de passe temporaire
             $user->setPassword($this->passwordHasher->hashPassword($user, $plainPassword));
+
+            // Gérer les rôles
+            $roles = $formRegistration->get('roles')->getData();
+
+            if (is_array($roles) && !empty($roles)) {
+                $user->setRoles($roles);
+            } else {
+                // Si aucun rôle n'est coché, mettre ROLE_USER par défaut
+                $user->setRoles(['ROLE_USER']);
+            }
+
+            // IMPORTANT : L'utilisateur DOIT changer son mot de passe à la première connexion
+            $user->setPasswordChange(true);
+            $user->setPasswordChangeDate(null); // Pas encore de changement de mot de passe
 
             $this->em->persist($user);
             $this->em->flush();
 
-            // Envoyer l'email de confirmation
-            $this->emailVerifier->sendEmailConfirmation(
-                'admin_verify_email',
-                $user,
-                (new TemplatedEmail())
-                    ->from(new Address('soifiaouir@gmail.com', 'Ouirdane Soifia'))
-                    ->to((string) $user->getEmail())
-                    ->subject('Confirmez votre email s\'il vous plaît')
-                    ->htmlTemplate('registration/confirmation_email.html.twig')
-            );
-
-            $this->addFlash('success', 'L\'utilisateur a été créé avec succès. Un email de confirmation a été envoyé.');
-
+            $this->addFlash('success', sprintf(
+                'L\'utilisateur %s a été créé avec succès. Il devra changer son mot de passe à la première connexion.',
+                $user->getUsername()
+            ));
             return $this->redirectToRoute('admin_dashboard');
         }
 
         return $this->render('admin/add_user.html.twig', [
-            'registrationForm' => $form,
+            'registrationForm' => $formRegistration,
         ]);
     }
 
-    #[Route('/verify/email', name: 'verify_email')]
-    public function verifyUserEmail(Request $request, TranslatorInterface $translator): Response
+    /**
+     * @throws RandomException
+     */
+    #[Route('/user/{id}/reset-password', name: 'reset_user_password', methods: ['POST'])]
+    public function resetUserPassword(User $user, LoggerInterface $logger): Response
     {
-        $id = $request->query->get('id');
+        // Générer un mot de passe temporaire simple
+        $temporaryPassword = 'temp' . random_int(1000, 9999);
 
-        if (null === $id) {
-            return $this->redirectToRoute('add_user');
-        }
+        // Hasher le mot de passe temporaire
+        $user->setPassword($this->passwordHasher->hashPassword($user, $temporaryPassword));
+        $user->setPasswordChange(true);
+        $user->setPasswordChangeDate(null);
 
-        $user = $this->userRepository->find($id);
+        $this->em->flush();
 
-        if (null === $user) {
-            return $this->redirectToRoute('add_user');
-        }
+        $this->addFlash('success', sprintf(
+            'Le mot de passe de l\'utilisateur %s a été réinitialisé. Nouveau mot de passe temporaire : <strong>%s</strong>',
+            $user->getUsername(),
+            $temporaryPassword
+        ));
 
-        // Valider le lien de confirmation d'email
-        try {
-            $this->emailVerifier->handleEmailConfirmation($request, $user);
-        } catch (VerifyEmailExceptionInterface $exception) {
-            $this->addFlash('verify_email_error', $translator->trans($exception->getReason(), [], 'VerifyEmailBundle'));
+        $logger->info('Mot de passe réinitialisé par admin', [
+            'username' => $user->getUsername(),
+            'reset_by' => $this->getUser()?->getUserIdentifier()
+        ]);
 
-            return $this->redirectToRoute('add_user');
-        }
-
-        $this->addFlash('success', 'L\'email a été vérifié avec succès.');
-
-        return $this->redirectToRoute('home');
+        return $this->redirectToRoute('admin_dashboard');
     }
 
+//    #[Route('/user/{id}/delete', name: 'delete_user', methods: ['POST'])]
+//    public function deleteUser(User $user, Request $request): Response
+//    {
+//        // Vérification du token CSRF
+//        if ($this->isCsrfTokenValid('delete' . $user->getId(), $request->request->get('_token'))) {
+//            $username = $user->getUsername();
+//
+//            $this->em->remove($user);
+//            $this->em->flush();
+//
+//            $this->addFlash('success', sprintf('L\'utilisateur %s a été supprimé.', $username));
+//        } else {
+//            $this->addFlash('error', 'Token CSRF invalide.');
+//        }
+//
+//        return $this->redirectToRoute('admin_dashboard');
+//    }
 }

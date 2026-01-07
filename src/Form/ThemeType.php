@@ -7,6 +7,8 @@ use App\Entity\Color;  // ← AJOUT MANQUANT
 use App\Repository\ColorRepository;  // ← AJOUT MANQUANT
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -30,7 +32,7 @@ class ThemeType extends AbstractType
             ])
             ->add('backgroundImageFile', FileType::class, [
                 'label' => 'Image de fond',
-                'mapped' => false,  // Ne mappe PAS sur l'entité
+                'mapped' => false,
                 'required' => false,
                 'constraints' => [
                     new File([
@@ -39,8 +41,12 @@ class ThemeType extends AbstractType
                         'mimeTypesMessage' => 'Image uniquement',
                     ])
                 ],
-            ])
-            ->add('archived')
+            ]);
+        if ($options['is_admin']) {
+            $builder
+            ->add('archived');
+                }
+        $builder
             ->add('submit', SubmitType::class, [
                 'label' => 'Valider',
                 'attr' => ['class' => 'submitButton']
@@ -52,6 +58,7 @@ class ThemeType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Theme::class,
+            'is_admin' => false,
         ]);
     }
 }

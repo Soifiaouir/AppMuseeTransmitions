@@ -102,6 +102,13 @@ nav{
 .formWidget{
     border: deeppink;
 }
+
+.password-field{
+    width: fit-content;
+    border: #0a3622;
+    border-radius: 0.375em;
+}
+
 .ligne{
     display: flex;
     flex-direction: row;

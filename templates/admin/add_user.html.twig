@@ -3,21 +3,19 @@
 {% block title %}Créer un utilisateur{% endblock %}
 
 {% block body %}
-    {% for flash_error in app.flashes('verify_email_error') %}
-        <div class="alert alert-danger" role="alert">{{ flash_error }}</div>
-    {% endfor %}
 
-    <h1>Créer un utilisateur</h1>
+    <h2>Créer un utilisateur</h2>
 
-    {{ form_errors(registrationForm) }}
     {{ form_start(registrationForm) }}
-    {{ form_row(registrationForm.username) }}
-    {{ form_row(registrationForm.email) }}
-    {{ form_row(registrationForm.plainPassword.first) }}
-    {{ form_row(registrationForm.plainPassword.second) }}
-    {{ form_row(registrationForm.agreeTerms) }}
 
-    <button type="submit" class="submitButton">Valider</button>
+        {{ form_row(registrationForm.username) }}
+        {{ form_row(registrationForm.plainPassword.first) }}
+        {{ form_row(registrationForm.plainPassword.second) }}
+        {{ form_row(registrationForm.roles) }}
+        {{ form_row(registrationForm.agreeTerms) }}
+        {{ form_row(registrationForm.submit) }}
+
     {{ form_end(registrationForm) }}
+
     <a href="{{ path('admin_dashboard') }}">Retour au dashboard</a>
 {% endblock %}

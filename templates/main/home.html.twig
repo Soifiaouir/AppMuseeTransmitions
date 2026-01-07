@@ -11,8 +11,11 @@
         <table>
             <thead>
             <tr>
-                <th>Nom du thème</th>
-                <th>Statut</th>
+                <th>Nom du thème
+
+                {% if is_granted('ROLE_ADMIN') %}
+                    <th>Statut</th>
+                {% endif %}
                 <th>Actions</th>
             </tr>
             </thead>
@@ -24,6 +27,7 @@
                             {{ theme.name }}
                         </a>
                     </td>
+                    {% if is_granted('ROLE_ADMIN') %}
                     <td>
                         {% if theme.isArchived() %}
                             Archivé
@@ -31,6 +35,7 @@
                             Actif
                         {% endif %}
                     </td>
+                    {% endif %}
                     <td>
                         <a href="{{ path('edit_theme', {'id': theme.id}) }}" class="buttonEdit">Modifier</a>
                     </td>

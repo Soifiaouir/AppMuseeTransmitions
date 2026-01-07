@@ -13,3 +13,7 @@ services:
   App\Service\MediaUploader:
     arguments:
       $mediaDirectory: '%kernel.project_dir%/public/uploads/media'
+
+  App\EventSubscriber\MustChangePassword:
+    tags:
+      - { name: kernel.event_subscriber }
