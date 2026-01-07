@@ -132,3 +132,16 @@ nav{
     padding: 1%;
     margin: 2%;
 }
+
+/*validation message*/
+.success{
+    color: #1b9448;
+}
+
+.error{
+    color: red;
+}
+
+.warning{
+    color: orangered;
+}

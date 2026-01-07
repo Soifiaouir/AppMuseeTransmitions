@@ -14,7 +14,10 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Service\Attribute\Required;
 
+#[IsGranted('ROLE_ADMIN')]
 #[Route('/', name: 'admin_')]
 final class AdminController extends AbstractController
 {
@@ -31,9 +34,12 @@ final class AdminController extends AbstractController
         $users = $this->userRepository->findAll();
         $themes = $themeRepository->findAll();
 
+        $usersNeedingPasswordChange = $this->userRepository->count(['passwordChange' => true]);
+
         return $this->render('admin/dashboard.html.twig', [
             'users' => $users,
-            'themes' => $themes
+            'themes' => $themes,
+            'usersNeedingPasswordChange' => $usersNeedingPasswordChange
         ]);
     }
 
@@ -83,48 +89,61 @@ final class AdminController extends AbstractController
     /**
      * @throws RandomException
      */
-    #[Route('/user/{id}/reset-password', name: 'reset_user_password', methods: ['POST'])]
-    public function resetUserPassword(User $user, LoggerInterface $logger): Response
-    {
-        // Générer un mot de passe temporaire simple
-        $temporaryPassword = 'temp' . random_int(1000, 9999);
 
-        // Hasher le mot de passe temporaire
-        $user->setPassword($this->passwordHasher->hashPassword($user, $temporaryPassword));
+    #[Route('/user/{id}/reset_password', name: 'reset_password', requirements: ['id' => '\d+'])]
+    public function reset_password(int $id): Response
+    {
+        $user = $this->userRepository->find($id);
+
+        if(!$user) {
+            $this->addFlash('error', 'Utilisateur introuvable');
+            return $this->redirectToRoute('admin_dashboard');
+        }
+
+        $tempPassword = $this->generateTemporaryPassword();
+        $user->setPassword($this->passwordHasher->hashPassword($user, $tempPassword));
         $user->setPasswordChange(true);
         $user->setPasswordChangeDate(null);
 
         $this->em->flush();
 
-        $this->addFlash('success', sprintf(
-            'Le mot de passe de l\'utilisateur %s a été réinitialisé. Nouveau mot de passe temporaire : <strong>%s</strong>',
-            $user->getUsername(),
-            $temporaryPassword
-        ));
-
-        $logger->info('Mot de passe réinitialisé par admin', [
-            'username' => $user->getUsername(),
-            'reset_by' => $this->getUser()?->getUserIdentifier()
-        ]);
+        $this->addFlash('success', 'Mot de de passe temporaire réinitialisé.');
+        $this->addFlash('Warning', 'Nouveau mot de passe temporaire : '. $tempPassword);
+        $this->addFlash('Warning', 'Enregistrez le et communiquez le a l\'utilisateur '. $user->getUsername());
 
         return $this->redirectToRoute('admin_dashboard');
     }
 
-//    #[Route('/user/{id}/delete', name: 'delete_user', methods: ['POST'])]
-//    public function deleteUser(User $user, Request $request): Response
-//    {
-//        // Vérification du token CSRF
+    /**
+     * @throws RandomException
+     */
+    private function generateTemporaryPassword(): string{
+        $password = '';
+        $chars = 'azertyuiopqsdfghjklmwxcvbn789456123';
+
+        for ($i = 0; $i < 12; $i++) {
+            $password .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+
+        return $password;
+    }
+
+    #[Route('/user/{id}/remove', name: 'remove_user', requirements:['id' => '\d+'])]
+    public function removeUser(User $user): Response
+    {
+        // Vérification du token CSRF
 //        if ($this->isCsrfTokenValid('delete' . $user->getId(), $request->request->get('_token'))) {
 //            $username = $user->getUsername();
-//
-//            $this->em->remove($user);
-//            $this->em->flush();
-//
-//            $this->addFlash('success', sprintf('L\'utilisateur %s a été supprimé.', $username));
-//        } else {
+
+            $this->em->remove($user);
+            $this->em->flush();
+
+            $this->addFlash('success', sprintf('L\'utilisateur %s a été supprimé.',$user->getUsername()));
+
+// else {
 //            $this->addFlash('error', 'Token CSRF invalide.');
 //        }
-//
-//        return $this->redirectToRoute('admin_dashboard');
-//    }
+
+        return $this->redirectToRoute('admin_dashboard');
+    }
 }

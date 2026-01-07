@@ -21,53 +21,40 @@ class MustChangePassword implements EventSubscriberInterface
 
     public function onKernelRequest(RequestEvent $event): void
     {
-        dump('🔵 MustChangePassword appelé');
-
         if (!$event->isMainRequest()) {
-            dump('🔴 Pas une requête principale');
             return;
         }
 
         $user = $this->security->getUser();
-        dump('👤 User récupéré:', $user);
-        dump('👤 Classe du user:', $user ? get_class($user) : 'null');
 
-        // ✅ CHANGEMENT ICI : Vérifier différemment
-        if (!$user || !method_exists($user, 'isPasswordChange')) {
-            dump('🔴 User null ou pas de méthode isPasswordChange');
+        // ✅ FIX 1: Vérifier QUE les utilisateurs qui DOIVENT changer leur mot de passe
+        if (!$user instanceof User || !$user->isPasswordChange()) {
             return;
         }
 
-        dump('✅ User a bien la méthode isPasswordChange');
-        dump('🔑 passwordChange =', $user->isPasswordChange());
-
         $request = $event->getRequest();
-        $currentRoute = $request->attributes->get('_route');
+        $currentRoute = $request->attributes->get('_route') ?? '';
 
-        dump('🛣️ Route actuelle:', $currentRoute);
-
+        // ✅ FIX 2: NOMS DE ROUTES EXACTS (d'après votre PasswordChangeController)
         $allowedRoutes = [
-            'app_change_password',
             'app_logout',
+            'app_login',
+            'change_password',        // ← Exactement comme dans votre controller
+            'password_reset_ask',
         ];
 
-        if ($user->isPasswordChange() && !in_array($currentRoute, $allowedRoutes)) {
-            dump('🚀 REDIRECTION vers change password');
+        if (!in_array($currentRoute, $allowedRoutes, true)) {
             $event->setResponse(
-                new RedirectResponse($this->urlGenerator->generate('app_change_password'))
+                new RedirectResponse($this->urlGenerator->generate('change_password'))
             );
-        } else {
-            dump('❌ PAS DE REDIRECTION', [
-                'passwordChange' => $user->isPasswordChange(),
-                'route autorisée' => in_array($currentRoute, $allowedRoutes)
-            ]);
         }
     }
+
 
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::REQUEST => ['onKernelRequest', 10],
+            KernelEvents::REQUEST => ['onKernelRequest', -10],
         ];
     }
 }

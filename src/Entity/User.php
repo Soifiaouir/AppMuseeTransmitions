@@ -47,7 +47,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $themes;
 
     #[ORM\Column(nullable: true)]
-    private ?bool $passwordChange = true;
+    private ?bool $passwordChange = false;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?\DateTimeInterface $passwordChangeDate = null;
@@ -159,7 +159,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function isPasswordChange(): ?bool
     {
-        return $this->passwordChange;
+        return $this->passwordChange === true;
     }
 
     public function setPasswordChange(?bool $passwordChange): static
