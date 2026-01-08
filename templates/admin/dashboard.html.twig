@@ -1,0 +1,129 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ parent() }} | Accueil{% endblock %}
+
+{% block body %}
+<div class="dashboard">
+    <div>
+        <h2>Gestion des utilisateurs</h2>
+        {% if usersNeedingPasswordChange > 1 %}
+            <strong class="warning">{{ usersNeedingPasswordChange }} utilisateurs doivent changer leurs mots de
+                passe</strong>
+        {% else %}
+            <strong class="warning">{{ usersNeedingPasswordChange }} utilisateurs doit changer son mot de
+                passe</strong>
+        {% endif %}
+        {% if users|length == 0 %}
+        <p>Aucun utilisateur dans la base de données</p>
+    {% else %}
+        <table>
+            <thead>
+            <tr>
+                <th>Pseudo</th>
+                <th>Rôle(s)</th>
+                <th>Mot de passe a changer</th>
+                <th>Date dernier changement</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for user in users %}
+            <tr {% if user.ispasswordChange %} style="background: #fff3cd;" {% endif %}>
+                <td>{{ user.username }}</td>
+                <td>
+                    {% if 'ROLE_ADMIN' in user.roles %}
+                        Admin
+                    {% else %}
+                        Utilisateur
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.ispasswordChange %}
+                    <p class="warning">OUI</p>
+                    {% else %}
+                        <p>non</p>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.passwordChangeDate %}
+                        {{ user.passwordChangeDate | date('d/m/Y') }}
+                    {% else %}
+                        <p></p>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.isPasswordChange %}
+                        <a href="{{ path('admin_reset_password', {'id': user.id}) }}">Réinitialiser le mot de passe</a>
+                    {% endif %}
+                    <a href="{{ path('admin_remove_user', {'id': user.id}) }}" class="buttonRemove">Supprimer</a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <a href="{{ path('admin_add_user') }}">Créer un utilisateur</a>
+    </div>
+
+    <hr>
+
+    {# Section Thèmes  #}
+    <div>
+        <h2>Gestion des thèmes</h2>
+
+        {% if themes|length == 0 %}
+            <p>Aucun thème dans la base de données</p>
+        {% else %}
+            <table>
+                <thead>
+                <tr>
+                    <th>Nom du thème</th>
+                    <th>Créé par</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for theme in themes %}
+                    <tr>
+                        <td>
+                            <a href="{{ path('details_theme', {'id': theme.id}) }}">
+                                {{ theme.name }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if theme.createdBy %}
+                                {{ theme.createdBy.username }}
+                            {% else %}
+                                <em>Non défini</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if theme.isArchived() %}
+                                Archivé
+                            {% else %}
+                                Actif
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ path('edit_theme', {'id': theme.id}) }}">Modifier</a>
+
+                            {% if theme.isArchived() %}
+                                <a href="{{ path('unarchive_theme', {'id': theme.id}) }}"
+                                   onclick="return confirm('Désarchiver ce thème ?')">Activer</a>
+                            {% else %}
+                                <a href="{{ path('archive_theme', {'id': theme.id}) }}"
+                                   onclick="return confirm('Archiver ce thème ?')">Archiver</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        <a href="{{ path('add_theme') }}">Créer un thème</a>
+    </div>
+</div>
+{% endblock %}

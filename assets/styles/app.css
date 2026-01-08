@@ -88,6 +88,8 @@ nav{
 .submitButton{
     background-color: #1417E6;
     color: #cccccc;
+    border-radius: 0.3rem;
+    width: fit-content;
 }
 .formError{
     color: red;
@@ -100,6 +102,13 @@ nav{
 .formWidget{
     border: deeppink;
 }
+
+.password-field{
+    width: fit-content;
+    border: #0a3622;
+    border-radius: 0.375em;
+}
+
 .ligne{
     display: flex;
     flex-direction: row;
@@ -110,4 +119,29 @@ nav{
     border-radius: 50%; /* pour un rond */
     border: 2px solid #ccc; /* bordure pour mieux voir */
     display: inline-block;
+}
+
+.login{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2em;
+    border: #0a53be solid;
+    border-radius: 0.375em;
+    width: 50%;
+    padding: 1%;
+    margin: 2%;
+}
+
+/*validation message*/
+.success{
+    color: #1b9448;
+}
+
+.error{
+    color: red;
+}
+
+.warning{
+    color: orangered;
 }
