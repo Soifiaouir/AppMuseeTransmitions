@@ -2,37 +2,54 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
 use App\Repository\ThemeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: ThemeRepository::class)]
 #[UniqueEntity(fields: ['name'], message: 'Ce nom de thème existe déjà !')]
-class Theme
+#[ApiResource(
+    operations: [
+        new Get(),           // GET /api/themes/{id}
+        new GetCollection()  // GET /api/themes
+    ],
+    normalizationContext: ['groups' => ['theme:read']],
+    paginationEnabled: true,
+    paginationItemsPerPage: 30
+)]class Theme
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['theme:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank(message: 'Le nom est obligatoire')]
     #[Assert\Length(min: 2, max: 255, maxMessage: 'Le nom ne peut pas dépasser {{ limit }} caractères')]
+    #[Groups(['theme:read'])]
     private ?string $name = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
+    #[Groups(['theme:read'])]
     private ?\DateTimeImmutable $dateOfCreation = null;
 
     #[ORM\Column(type: 'boolean')]
+    #[Groups(['theme:read'])]
     private bool $archived = false;
 
     /**
      * @var Collection<int, Card>
      */
     #[ORM\OneToMany(targetEntity: Card::class, mappedBy: 'theme', orphanRemoval: true)]
+    #[Groups(['theme:read'])]
     private Collection $cards;
 
     /**
@@ -40,15 +57,18 @@ class Theme
      */
     #[ORM\ManyToMany(targetEntity: Color::class, inversedBy: 'themes')]
     #[ORM\JoinTable(name: 'theme_color')]
+    #[Groups(['theme:read'])]
     private Collection $colors;
 
     /**
      * @var Collection<int, Media>
      */
     #[ORM\ManyToMany(targetEntity: Media::class, mappedBy: 'themes')]
+    #[Groups(['theme:read'])]
     private Collection $medias;
 
     #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    #[Groups(['theme:read'])]
     private ?Media $backgroundImage = null;
 
     #[ORM\ManyToOne(inversedBy: 'themes')]

@@ -13,8 +13,22 @@ security:
   firewalls:
     dev:
       pattern: ^/(_(profiler|wdt)|css|images|js)/
-      security: false
+      security:
+
+    api:
+      pattern: ^/api
+      stateless: true
+      provider: app_user_provider
+      jwt: ~
+      json_login:
+        check_path: /api/login_check # The name in routes.yaml is enough for mapping
+        username_path: username
+        password_path: password
+        success_handler: lexik_jwt_authentication.handler.authentication_success
+        failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
     main:
+      pattern: ^/
       lazy: true
       provider: app_user_provider
       form_login:
@@ -24,13 +38,15 @@ security:
         default_target_path: home
       logout:
         path: app_logout
-        # where to redirect after logout
         target: app_login
       remember_me:
         secret: '%kernel.secret%'
         lifetime: 604800
         path: /
         always_remember_me: true
+
+
+
 
       # activate different ways to authenticate
       # https://symfony.com/doc/current/security.html#the-firewall
@@ -45,11 +61,16 @@ security:
     - { path: ^/logout, roles: PUBLIC_ACCESS }
     - { path: ^/password_reset_ask, roles: PUBLIC_ACCESS }
 
-      # Admin UNIQUEMENT après
+    # Routes API- pour tous
+    - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
+    - { path: ^/api/docs, roles: PUBLIC_ACCESS }
+    - { path: ^/api/, roles: ROLE_USER }
+
+    # Routes Admin
     - { path: ^/dashboard, roles: ROLE_ADMIN }
     - { path: ^/user, roles: ROLE_ADMIN }
 
-      # Routes utilisateur (plus restrictives en DERNIER)
+    # Routes User
     - { path: ^/change-password, roles: ROLE_USER }
     - { path: ^/home, roles: ROLE_USER }
 

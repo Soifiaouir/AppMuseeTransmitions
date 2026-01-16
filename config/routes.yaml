@@ -1,3 +1,8 @@
+# Route pour l'authentification JWT (obligatoire)
+api_login_check:
+    path: /api/login_check
+    methods: ['POST']
+
 controllers:
     resource:
         path: ../src/Controller/

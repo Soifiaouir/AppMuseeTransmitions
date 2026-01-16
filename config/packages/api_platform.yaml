@@ -1,0 +1,10 @@
+api_platform:
+    title: 'Mon API'
+    version: '1.0.0'
+
+    # Configuration Swagger/OpenAPI
+    swagger:
+        api_keys:
+            JWT:
+                name: Authorization
+                type: header

@@ -2,34 +2,50 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
 use App\Repository\MediaRepository;
 use App\Validator\NoHtml;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: MediaRepository::class)]
+#[ApiResource(
+    operations: [
+        new Get(),
+        new GetCollection()
+    ],
+    normalizationContext: ['groups' => ['media:read']]
+)]
 class Media
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['theme:read', 'media:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['media:read', 'theme:read'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 50)]
+    #[Groups(['media:read', 'theme:read'])]
     private ?string $type = null;
 
     #[ORM\Column(name: "userGivenName", length: 255)]
+    #[Groups(['theme:read', 'media:read'])]
     private ?string $userGivenName = null;
 
     #[ORM\Column(nullable: true)]
     private ?int $size = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['media:read', 'theme:read'])]
     private ?string $extensionFile = null;
 
     #[ORM\Column]
@@ -40,6 +56,7 @@ class Media
      */
     #[ORM\ManyToMany(targetEntity: Card::class, inversedBy: 'medias')]
     #[ORM\JoinTable(name: 'media_card')]
+    #[Groups(['theme:read', 'media:read'])]
     private Collection $cards;
 
     /**
@@ -47,6 +64,7 @@ class Media
      */
     #[ORM\ManyToMany(targetEntity: Theme::class, inversedBy: 'medias')]
     #[ORM\JoinTable(name: 'media_theme')]
+    #[Groups(['media:read'])]
     private Collection $themes;
 
     public function __construct()
@@ -193,4 +211,18 @@ class Media
     {
         return $this->name . '.' . $this->extensionFile;
     }
+
+    /**
+     * Chemin public pour l'API (ex: /uploads/media/video/1.mp4)
+     * Utilisable directement en React: REACT_API_URL + media.publicPath
+     */
+    #[Groups(['media:read', 'theme:read'])]
+    public function getPublicPath(): ?string
+    {
+        if (!$this->name || !$this->type || !$this->extensionFile) {
+            return null;
+        }
+        return sprintf('/uploads/media/%s/%s.%s', $this->type, $this->name, $this->extensionFile);
+    }
+
 }
