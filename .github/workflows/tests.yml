@@ -1,31 +1,22 @@
 name: Build, Push & Test Docker
-
-
 on:
   push:
     branches: [ master ]
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Login to Docker Hub
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-
       - name: Build Docker image
         run: docker build -t ${{ secrets.DOCKER_REPOSITORY }}:latest .
-
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKER_REPOSITORY }}:latest
-
   tests:
     needs: build-and-push
     runs-on: ubuntu-latest
-
     services:
       mariadb:
         image: mariadb:11.8
@@ -35,17 +26,13 @@ jobs:
         ports:
           - 3306:3306
         options: --health-cmd="mariadb-admin ping" --health-interval=10s --health-timeout=5s --health-retries=5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Login to Docker Hub
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-
       - name: Pull Docker image
         run: docker pull ${{ secrets.DOCKER_REPOSITORY }}:latest
-
       - name: Run tests
         env:
           IMAGE: ${{ secrets.DOCKER_REPOSITORY }}:latest
@@ -54,12 +41,12 @@ jobs:
             -v $(pwd):/app \
             -w /app \
             --network=host \
-            -e DATABASE_URL="mysql://root:root@127.0.0.1:3306/test?serverVersion=mariadb-11.8&charset=utf8mb4" \
+            -e DATABASE_URL="mysql://root:root@127.0.0.1:3306/test?serverVersion=mariadb-11.8.5&charset=utf8mb4" \
             $IMAGE \
             sh -c "
+              git config --global --add safe.directory /app &&
               composer install --no-interaction --prefer-dist --optimize-autoloader &&
               php bin/console doctrine:database:create --env=test --no-interaction --if-not-exists &&
               php bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration &&
               vendor/bin/phpunit --colors=always
             "
-
