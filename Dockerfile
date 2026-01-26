@@ -46,8 +46,9 @@ COPY . /var/www/html
 # Finaliser l'installation de Composer
 RUN composer dump-autoload --optimize --no-dev
 
-# Permissions
-RUN chown -R www-data:www-data /var/www/html/var
+# Créer et configurer les permissions pour les dossiers Symfony
+RUN mkdir -p var/cache var/log \
+    && chown -R www-data:www-data /var/www/html/var
 
 # Port exposé
 EXPOSE 80
