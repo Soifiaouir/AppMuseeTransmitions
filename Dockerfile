@@ -34,11 +34,17 @@ RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini \
 # Définir le répertoire de travail
 WORKDIR /var/www/html
 
-# Copier les fichiers du projet
-COPY . /var/www/html
+# Copier les fichiers composer d'abord (pour le cache Docker)
+COPY composer.json composer.lock ./
 
 # Installer les dépendances Composer
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-autoloader
+
+# Copier le reste des fichiers du projet
+COPY . /var/www/html
+
+# Finaliser l'installation de Composer
+RUN composer dump-autoload --optimize --no-dev
 
 # Permissions
 RUN chown -R www-data:www-data /var/www/html/var
