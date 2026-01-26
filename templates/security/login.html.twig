@@ -3,39 +3,42 @@
 {% block title %}Log in!{% endblock %}
 
 {% block body %}
-    <form method="post" class="login">
+    <form method="post" class="form">
         {% if error %}
-            <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            <div class="formError alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
         {% endif %}
 
         {% if app.user %}
-            <div class="mb-3">
-                You are logged in as {{ app.user.userIdentifier }}, <a href="{{ logout_path() }}">Logout</a>
+            <div class="formWidget">
+                <p>Vous êtes connecté en tant que {{ app.user.userIdentifier }}, <a href="{{ path('app_logout') }}">Déconnexion</a></p>
             </div>
         {% endif %}
 
-        <h2>Connectez vous</h2>
-        <div>
-            <label for="username">Pseudo</label>
+        <div class="formWidget">
+            <label class="formLabel" for="username">Pseudo</label>
             <input type="text" value="{{ last_username }}" name="_username" id="username" class="form-control" autocomplete="username" required autofocus>
         </div>
-        <div>
-            <label for="password">Mot de passe</label>
+
+        <div class="formWidget">
+            <label class="formLabel" for="password">Mot de passe</label>
             <input type="password" name="_password" id="password" class="form-control" autocomplete="current-password" required>
         </div>
-            <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
 
-        <div class="checkbox mb-3">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+        <div class="formWidget checkbox mb-3">
+            <label for="_remember_me">
                 <input type="checkbox" name="_remember_me" id="_remember_me">
-                <label for="_remember_me">Se souvenir de moi</label>
+                Se souvenir de moi
+            </label>
         </div>
 
         <button class="submitButton" type="submit">
             Se connecter
         </button>
 
-        <p>
-            <a href="{{ path('password_reset_ask') }}" class="warning">Mot de passe oublier</a>
+        <p class="mt-3 text-center">
+            <a href="{{ path('password_reset_ask') }}" class="warning">Mot de passe oublié ?</a>
         </p>
     </form>
 {% endblock %}

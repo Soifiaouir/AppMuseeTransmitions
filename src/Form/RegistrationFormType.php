@@ -24,7 +24,9 @@ class RegistrationFormType extends AbstractType
         $builder
             ->add('username', TextType::class, [
                 'label' => 'Pseudo',
+                'label_attr' => ['class' => 'formLabel'],
                 'attr' => [
+                    'class' => 'formWidget',
                     'placeholder' => 'Votre pseudo'
                 ]
             ])
@@ -33,16 +35,18 @@ class RegistrationFormType extends AbstractType
                 'mapped' => false,
                 'first_options' => [
                     'label' => 'Mot de passe temporaire',
+                    'label_attr' => ['class' => 'formLabel'],
                     'attr' => [
-                        'class' => 'password-field',
+                        'class' => 'formWidget password-field',
                         'autocomplete' => 'new-password',
                         'placeholder' => 'Minimum 8 caractères'
                     ]
                 ],
                 'second_options' => [
                     'label' => 'Confirmer le mot de passe',
+                    'label_attr' => ['class' => 'formLabel'],
                     'attr' => [
-                        'class' => 'password-field',
+                        'class' => 'formWidget password-field',
                         'autocomplete' => 'new-password',
                         'placeholder' => 'Retapez votre mot de passe'
                     ]
@@ -61,6 +65,7 @@ class RegistrationFormType extends AbstractType
             ])
             ->add('roles', ChoiceType::class, [
                 'label' => 'Rôle',
+                'label_attr' => ['class' => 'formLabel'],
                 'choices' => [
                     'Utilisateur' => 'ROLE_USER',
                     'Administrateur' => 'ROLE_ADMIN',
@@ -68,9 +73,14 @@ class RegistrationFormType extends AbstractType
                 'multiple' => true,
                 'expanded' => true,
                 'required' => false,
+                'attr' => ['class' => 'formWidget']
             ])
             ->add('agreeTerms', CheckboxType::class, [
                 'label' => 'J\'accepte les conditions d\'utilisation',
+                'label_attr' => ['class' => 'formLabel'],
+                'attr' => [
+                    'class' => 'formWidget'
+                ],
                 'mapped' => false,
                 'constraints' => [
                     new IsTrue([
@@ -89,6 +99,9 @@ class RegistrationFormType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => User::class,
+            'attr' => [
+                'class' => 'form'
+            ]
         ]);
     }
 }

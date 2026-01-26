@@ -11,6 +11,7 @@ use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\File;
@@ -20,15 +21,26 @@ class ThemeType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('name')
+            ->add('name', TextType::class)
             ->add('colors', EntityType::class, [
                 'class' => Color::class,
-                'choice_label' => 'name',
-                'multiple' => true,
-                'by_reference' => false,
                 'query_builder' => function (ColorRepository $repo) {
                     return $repo->createQueryBuilder('c')->orderBy('c.name', 'ASC');
                 },
+                'choice_label' => function (Color $color) {
+                    return sprintf(
+                        '%s <span class="color-pastille" style="background-color: %s;"></span>',
+                        $color->getName(),
+                        $color->getColorCode()
+                    );
+                },
+                'choice_attr' => function (Color $color) {
+                    return ['data-color' => $color->getColorCode()];
+                },
+                'multiple' => true,
+                'expanded' => true,
+                'label' => 'Couleurs',
+                'label_html' => true, // Important pour afficher le HTML dans les labels
             ])
             ->add('backgroundImageFile', FileType::class, [
                 'label' => 'Image de fond',

@@ -7,6 +7,7 @@ use App\Entity\Theme;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -15,14 +16,26 @@ class ColorType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('name')
-            ->add('colorCode')
-            ->add('themes', EntityType::class, [  // ← 'themes' au pluriel
+            ->add('colorCode', TextType::class, [
+                'label' => 'Code HEX',
+                'attr' => [
+                    'placeholder' => '#FF0000'
+                ]
+            ])
+            ->add('name', TextType::class, [
+                'attr' => [
+                    'class' => 'force-text-input',
+                    'placeholder' => 'Nom de la couleur (ex: Rouge)'
+                ],
+                'label' => 'Name',
+                'label_attr' => ['class' => 'formLabel']
+            ])
+            ->add('themes', EntityType::class, [
                 'class' => Theme::class,
                 'choice_label' => 'name',
-                'multiple' => true,  // ← Ajout pour permettre plusieurs thèmes
-                'expanded' => false,  // ← Select multiple au lieu de checkboxes
-                'required' => false,  // ← Optionnel selon vos besoins
+                'multiple' => true,
+                'expanded' => false,
+                'required' => false,
             ])
             ->add('submit', SubmitType::class, [
                 'label' => 'Valider',

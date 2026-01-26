@@ -3,19 +3,26 @@
 {% block title %}Créer un utilisateur{% endblock %}
 
 {% block body %}
+    <main>
+        <section>
+            <h2>Créer un utilisateur</h2>
 
-    <h2>Créer un utilisateur</h2>
+            {{ form_start(registrationForm, {'attr': {'class': 'form'}}) }}
 
-    {{ form_start(registrationForm) }}
+            {{ form_row(registrationForm.username) }}
+            {{ form_row(registrationForm.plainPassword) }}
+            {{ form_row(registrationForm.roles) }}
+            {{ form_row(registrationForm.agreeTerms) }}
 
-        {{ form_row(registrationForm.username) }}
-        {{ form_row(registrationForm.plainPassword.first) }}
-        {{ form_row(registrationForm.plainPassword.second) }}
-        {{ form_row(registrationForm.roles) }}
-        {{ form_row(registrationForm.agreeTerms) }}
-        {{ form_row(registrationForm.submit) }}
+            <div class="formWidget">
+                {{ form_widget(registrationForm.submit) }}
+            </div>
 
-    {{ form_end(registrationForm) }}
+            {{ form_end(registrationForm) }}
 
-    <a href="{{ path('admin_dashboard') }}">Retour au dashboard</a>
+            <a href="{{ path('admin_dashboard') }}" class="buttonEdit">
+                Retour au dashboard
+            </a>
+        </section>
+    </main>
 {% endblock %}

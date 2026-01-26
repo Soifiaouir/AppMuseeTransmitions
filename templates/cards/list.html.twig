@@ -2,7 +2,8 @@
 
 {% block body %}
     <h2>Liste des cartes</h2>
-        {% if cards|length == 0 %}
+    <a href="{{ path('cards_add') }}"><button class="buttonCreate">Ajouter une carte</button></a>
+    {% if cards|length == 0 %}
             <p>Pas de cartes dans la base de donnée</p>
         {% else %}
             {% for card in cards %}
@@ -12,7 +13,6 @@
                 </div>
             {% endfor %}
         {% endif %}
-    <a href="{{ path('cards_add') }}"><button class="buttonCreate">Ajouter une carte</button></a>
 {% endblock %}
 
 {% block title %}
