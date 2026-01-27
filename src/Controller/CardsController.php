@@ -20,12 +20,25 @@ final class CardsController extends AbstractController
         private CardRepository $cardRepository)
     {}
 
-    #[Route('/', name: 'list')]
-    public function list(): Response
+    #[Route('/{page}', name: 'list', requirements: ['page' => '\d+'])]
+    public function list(int $page = 1): Response
     {
-        $cards = $this->cardRepository->findAll();
+        $totalCards = $this->cardRepository->count();
+        $maxPages = ceil($totalCards/ Card::CARD_PER_PAGE);
+
+        if($page < 1) {
+            return $this->redirectToRoute('cards_list', ['page' => 1]);
+        }
+        if($page > $maxPages) {
+            return $this->redirectToRoute('cards_list', ['page' => $maxPages]);
+        }
+        $cards = $this->cardRepository->getCardByThemeWithPagination($page);
+        $paginator = $cards;
+
         return $this->render('cards/list.html.twig', [
             'cards' => $cards,
+            'currentPage' => $page,
+            'maxPages' => $maxPages,
         ]);
     }
 
@@ -61,7 +74,7 @@ final class CardsController extends AbstractController
 
         if ($formCard->isSubmitted() && $formCard->isValid()) {
             $this->em->flush();
-            $this>$this->addFlash('success', 'La carte '.$card->getTitle().' a bien été modifiée');
+            $this->addFlash('success', 'La carte '.$card->getTitle().' a bien été modifiée');  // Correction ici
 
             return $this->redirectToRoute('cards_details', ['id' => $card->getId()]);
         }

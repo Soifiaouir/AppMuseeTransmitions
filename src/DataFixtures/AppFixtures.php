@@ -49,7 +49,7 @@ class AppFixtures extends Fixture
         $manager->persist($userAdmin);
 
         // Ajout de quelques utilisateurs de test supplémentaires
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 3; $i++) {
             $testUser = new User();
             $testUser->setUsername('user' . $i)
                 ->setPassword($this->userPasswordHasher->hashPassword($testUser, 'password123'))
@@ -69,7 +69,7 @@ class AppFixtures extends Fixture
         // Récupérer l'admin pour l'associer aux thèmes
         $admin = $manager->getRepository(User::class)->findOneBy(['username' => 'admin']);
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 5; $i++) {
             $theme = new Theme();
             $theme->setName($faker->words(3, true))
                 ->setArchived($faker->boolean(30)) // 30% de chance d'être archivé

@@ -3,15 +3,13 @@
 namespace App\Tests\Entity;
 
 use App\Entity\Card;
-use App\Entity\Color;
 use App\Entity\Theme;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Le constructeur initialise archived = false, dateOfCreation, cards, colors
+ * Le constructeur initialise archived = false, dateOfCreation, cards, medias
  * Les getters/setters : name, archived
  * __toString() retourne le nom
- * addColor() / removeColor() (même logique que addTheme)
  * addCard() / removeCard()
  * setDateOfCreationToday() met bien la date à aujourd'hui
  */
@@ -21,132 +19,139 @@ class ThemeTest extends TestCase
     {
         $theme = new Theme();
 
-        $this->assertCount(0, $theme->getColors());
-        $this->assertCount(0, $theme->getCards());
+        // ARRANGE (implicite ici)
 
-        //Test séparé pour chaque collection
-        $this->assertInstanceOf(\Doctrine\Common\Collections\Collection::class, $theme->getColors());
+        // ASSERT
+        $this->assertCount(0, $theme->getCards());
+        $this->assertCount(0, $theme->getMedias());
+
+        // Test séparé pour chaque collection
         $this->assertInstanceOf(\Doctrine\Common\Collections\Collection::class, $theme->getCards());
+        $this->assertInstanceOf(\Doctrine\Common\Collections\Collection::class, $theme->getMedias());
 
         $this->assertFalse($theme->isArchived());
         $this->assertInstanceOf(\DateTimeImmutable::class, $theme->getDateOfCreation());
     }
 
-    public function testGetAndSetName(): void{
+    public function testGetAndSetName(): void
+    {
+        // ARRANGE
         $theme = new Theme();
-        $expected ='Banane';
+        $expected = 'Banane';
 
-       //act
+        // ACT
         $theme->setName($expected);
 
-        //assert
+        // ASSERT
         $this->assertSame($expected, $theme->getName());
     }
-    public function testGetAndSetArchived(): void{
+
+    public function testGetAndSetArchived(): void
+    {
+        // ARRANGE
         $theme = new Theme();
         $expected = false;
 
-        //act
+        // ACT
         $theme->setArchived($expected);
 
-        //assert
+        // ASSERT
         $this->assertSame($expected, $theme->isArchived());
     }
 
-    public function testToString(): void{
+    public function testToString(): void
+    {
+        // ARRANGE
         $theme = new Theme();
         $theme->setName('Banane');
 
-        //Act
-        $result = (string)$theme;
+        // ACT
+        $result = (string) $theme;
 
-        //Assert
-        $this->AssertEquals('Banane', $result);
+        // ASSERT
+        $this->assertEquals('Banane', $result);
     }
 
     public function testAddCard(): void
     {
+        // ARRANGE
         $theme = new Theme();
         $card = new Card();
 
-        //Act
+        // ACT
         $theme->addCard($card);
 
-        //Assert
+        // ASSERT
         $this->assertCount(1, $theme->getCards());
         $this->assertTrue($theme->getCards()->contains($card));
     }
 
-    public function testAddColor(): void
+    public function testAddCardEdit(): void
     {
-        $theme = new Theme();
-        $color = new Color();
-
-        //Act
-        $theme->addColor($color);
-
-        //Assert
-        $this->assertCount(1, $theme->getColors());
-        $this->assertTrue($theme->getColors()->contains($color));
-    }
-
-    public function testAddCardEdit(): void{
+        // ARRANGE
         $theme = new Theme();
         $card = new Card();
 
-        //act
+        // ACT
         $theme->addCard($card);
 
-        //Assert
+        // ASSERT
         $this->assertTrue($theme->getCards()->contains($card));
     }
 
-    public function testAddColorEdit(): void{
-        $theme = new Theme();
-        $color = new Color();
-
-        //act
-        $theme->addColor($color);
-
-        //Assert
-        $this->assertTrue($theme->getColors()->contains($color));
-    }
-
-    public function testRemoveCard(): void{
+    public function testRemoveCard(): void
+    {
+        // ARRANGE
         $theme = new Theme();
         $card = new Card();
         $theme->addCard($card);
 
-        //act
+        // ACT
         $theme->removeCard($card);
 
-        //Assert
+        // ASSERT
+        $this->assertCount(0, $theme->getCards());
         $this->assertFalse($theme->getCards()->contains($card));
     }
 
-    public function testRemoveColor(): void{
+    public function testAddMedia(): void
+    {
+        // ARRANGE
         $theme = new Theme();
-        $color = new Color();
-        $theme->addColor($color);
+        $media = new \App\Entity\Media();
 
-        //act
-        $theme->removeColor($color);
+        // ACT
+        $theme->addMedia($media);
 
-        //Assert
-        $this->assertFalse($theme->getColors()->contains($color));
+        // ASSERT
+        $this->assertCount(1, $theme->getMedias());
+        $this->assertTrue($theme->getMedias()->contains($media));
+    }
+
+    public function testRemoveMedia(): void
+    {
+        // ARRANGE
+        $theme = new Theme();
+        $media = new \App\Entity\Media();
+        $theme->addMedia($media);
+
+        // ACT
+        $theme->removeMedia($media);
+
+        // ASSERT
+        $this->assertCount(0, $theme->getMedias());
+        $this->assertFalse($theme->getMedias()->contains($media));
     }
 
     public function testSetDateOfCreation(): void
     {
+        // ARRANGE
         $theme = new Theme();
 
-        // Act
+        // ACT
         $theme->setDateOfCreation();
 
-        // Assert
+        // ASSERT
         $this->assertInstanceOf(\DateTimeImmutable::class, $theme->getDateOfCreation());
-
     }
-
-
 }

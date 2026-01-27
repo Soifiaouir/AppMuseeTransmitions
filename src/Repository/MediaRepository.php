@@ -147,4 +147,18 @@ class MediaRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function findImagesByTheme(int $themeId): array
+    {
+        $qb = $this->createQueryBuilder('m')
+            ->innerJoin('m.themes', 't')
+            ->where('t.id = :themeId')
+            ->andWhere('m.type = :type')
+            ->setParameter('themeId', $themeId)
+            ->setParameter('type', 'image')
+            ->orderBy('m.userGivenName', 'ASC');
+
+        return $qb->getQuery()->getResult();
+    }
+
 }

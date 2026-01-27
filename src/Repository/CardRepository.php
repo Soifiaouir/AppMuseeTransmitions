@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Card;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -16,6 +17,26 @@ class CardRepository extends ServiceEntityRepository
         parent::__construct($registry, Card::class);
     }
 
+    public function getCardByThemeWithPagination(int $page): Paginator
+    {
+        $dql = " select c from App\Entity\Card as c
+                 LEFT JOIN c.theme as theme
+                 ORDER BY c.theme.dateOfCreation DESC";
+
+        $qb = $this->createQueryBuilder('c');
+        $qb->leftJoin('c.theme', 't');
+        $qb->addSelect('t');
+        $qb->orderBy('t.dateOfCreation', 'DESC');
+
+        $query = $qb->getQuery();
+        $limit = Card::CARD_PER_PAGE;
+        $offset = ($page - 1) * $limit;
+        $query->setMaxResults($limit);
+        $query->setFirstResult($offset);
+
+        $paginator = new Paginator($query);
+        return $paginator;
+    }
     //    /**
     //     * @return Card[] Returns an array of Card objects
     //     */
