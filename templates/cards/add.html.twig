@@ -1,12 +1,101 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}
-    {{ parent() }} | Ajout d'une carte
+    Ajout d'une carte
 {% endblock %}
 
 {% block body %}
-    {% embed 'views/form/form_template.html.twig' with {form : formCard}%}
-        {% block formTitle %} Ajout d'une carte{% endblock %}
+    {% embed 'views/form/form_template.html.twig' with {form : formCard} %}
+        {% block formTitle %}Ajout d'une carte{% endblock %}
     {% endembed %}
 {% endblock %}
 
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            initMoreInfosCollection();
+        });
+
+        function initMoreInfosCollection() {
+            const collectionHolder = document.querySelector('.more-infos-collection');
+            if (!collectionHolder) return;
+
+            // Conteneur pour les items
+            const itemsContainer = collectionHolder.querySelector('[data-prototype]') || collectionHolder;
+
+            // Créer le bouton d'ajout s'il n'existe pas
+            let addButton = collectionHolder.parentElement.querySelector('.add-more-info-btn');
+            if (!addButton) {
+                addButton = document.createElement('button');
+                addButton.type = 'button';
+                addButton.className = 'btn btn-secondary add-more-info-btn';
+                addButton.textContent = '+ Ajouter une section supplémentaire';
+                collectionHolder.parentElement.appendChild(addButton);
+            }
+
+            // Compter les items existants
+            let index = collectionHolder.querySelectorAll('.more-info-item').length;
+
+            // Fonction pour ajouter un item
+            addButton.addEventListener('click', function() {
+                const prototype = collectionHolder.dataset.prototype;
+                if (!prototype) return;
+
+                const newForm = prototype.replace(/__name__/g, index);
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'more-info-item';
+                wrapper.innerHTML = newForm;
+
+                // Bouton de suppression
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-danger btn-sm remove-more-info-btn';
+                removeBtn.textContent = 'Supprimer';
+                removeBtn.style.marginTop = '10px';
+                wrapper.appendChild(removeBtn);
+
+                collectionHolder.appendChild(wrapper);
+                index++;
+            });
+
+            // Délégation pour la suppression
+            collectionHolder.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-more-info-btn')) {
+                    e.target.closest('.more-info-item').remove();
+                }
+            });
+
+            // Ajouter boutons de suppression aux items existants
+            collectionHolder.querySelectorAll('.more-info-item').forEach(function(item) {
+                if (!item.querySelector('.remove-more-info-btn')) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn btn-danger btn-sm remove-more-info-btn';
+                    removeBtn.textContent = 'Supprimer';
+                    removeBtn.style.marginTop = '10px';
+                    item.appendChild(removeBtn);
+                }
+            });
+        }
+    </script>
+
+    <style>
+        .more-info-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+
+        .add-more-info-btn {
+            margin-top: 10px;
+        }
+
+        .more-infos-collection {
+            margin-bottom: 15px;
+        }
+    </style>
+{% endblock %}

@@ -22,25 +22,29 @@ class ThemeType extends AbstractType
     {
         $builder
             ->add('name', TextType::class)
-            ->add('colors', EntityType::class, [
+//            ->add('colors', EntityType::class, [
+//                'class' => Color::class,
+//                'query_builder' => function (ColorRepository $repo) {
+//                    return $repo->createQueryBuilder('c')->orderBy('c.name', 'ASC');
+//                },
+//                'choice_label' => function (Color $color) {
+//                    return sprintf(
+//                        '%s <span class="color-pastille" style="background-color: %s;"></span>',
+//                        $color->getName(),
+//                        $color->getColorCode()
+//                    );
+//                },
+//                'choice_attr' => function (Color $color) {
+//                    return ['data-color' => $color->getColorCode()];
+//                },
+//                'multiple' => true,
+//                'expanded' => true,
+//                'label' => 'Couleurs',
+//                'label_html' => true, // Important pour afficher le HTML dans les labels
+//            ])
+            ->add('themeBackgroundColor', EntityType::class, [
                 'class' => Color::class,
-                'query_builder' => function (ColorRepository $repo) {
-                    return $repo->createQueryBuilder('c')->orderBy('c.name', 'ASC');
-                },
-                'choice_label' => function (Color $color) {
-                    return sprintf(
-                        '%s <span class="color-pastille" style="background-color: %s;"></span>',
-                        $color->getName(),
-                        $color->getColorCode()
-                    );
-                },
-                'choice_attr' => function (Color $color) {
-                    return ['data-color' => $color->getColorCode()];
-                },
-                'multiple' => true,
-                'expanded' => true,
-                'label' => 'Couleurs',
-                'label_html' => true, // Important pour afficher le HTML dans les labels
+                'required' => false,
             ])
             ->add('backgroundImageFile', FileType::class, [
                 'label' => 'Image de fond',

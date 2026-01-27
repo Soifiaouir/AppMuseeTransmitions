@@ -23,7 +23,8 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
     normalizationContext: ['groups' => ['theme:read']],
     paginationEnabled: true,
     paginationItemsPerPage: 30
-)]class Theme
+)]
+class Theme
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -53,14 +54,6 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
     private Collection $cards;
 
     /**
-     * @var Collection<int, Color>
-     */
-    #[ORM\ManyToMany(targetEntity: Color::class, inversedBy: 'themes')]
-    #[ORM\JoinTable(name: 'theme_color')]
-    #[Groups(['theme:read'])]
-    private Collection $colors;
-
-    /**
      * @var Collection<int, Media>
      */
     #[ORM\ManyToMany(targetEntity: Media::class, mappedBy: 'themes')]
@@ -74,12 +67,14 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
     #[ORM\ManyToOne(inversedBy: 'themes')]
     private ?User $createdBy = null;
 
+    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    private ?Color $themeBackgroundColor = null;
+
     public function __construct()
     {
         $this->archived = false;
         $this->dateOfCreation = new \DateTimeImmutable();
         $this->cards = new ArrayCollection();
-        $this->colors = new ArrayCollection();
         $this->medias = new ArrayCollection();
     }
 
@@ -150,33 +145,6 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
         return $this;
     }
 
-    /**
-     * @return Collection<int, Color>
-     */
-    public function getColors(): Collection
-    {
-        return $this->colors;
-    }
-
-    public function addColor(Color $color): static
-    {
-        if (!$this->colors->contains($color)) {
-            $this->colors->add($color);
-            $color->addTheme($this);
-        }
-
-        return $this;
-    }
-
-    public function removeColor(Color $color): static
-    {
-        if ($this->colors->removeElement($color)) {
-            $color->removeTheme($this);
-        }
-
-        return $this;
-    }
-
     public function __toString(): string
     {
         return $this->name ?? '';
@@ -233,4 +201,15 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
         return $this;
     }
 
+    public function getThemeBackgroundColor(): ?color
+    {
+        return $this->themeBackgroundColor;
+    }
+
+    public function setThemeBackgroundColor(?color $themeBackgroundColor): static
+    {
+        $this->themeBackgroundColor = $themeBackgroundColor;
+
+        return $this;
+    }
 }

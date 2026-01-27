@@ -1,19 +1,72 @@
 {% extends 'base.html.twig' %}
 
-{% block body %}
-    <h2>Détail de la {{ card.title }}</h2>
-    <h3>THEME : {{ card.theme.name }}</h3>
-    <p>{{ card.detail }}</p>
-    {% if card.moreInfoTitle != null %}
-        <h3>Informations Complémentaire <br>
-            {{ card.moreInfoTitle }}</h3>
-        <p>{{ card.moreInfoDetails }}</p>
-    {% endif %}
-    <a href="{{ path('cards_edit', {'id': card.id}) }}"><button class="buttonEdit">Modifier la carte</button></a>
-    <a href="{{ path('cards_delete', {'id': card.id}) }}"><button class="buttonRemove">Supprimer la carte</button></a>
-{% endblock %}
-
 {% block title %}
-    {{ parent() }} | Détail de la {{ card.title }}
+     Détails de la carte {{ card.title }}
 {% endblock %}
 
+{% block body %}
+    <div class="card-details">
+        <h2>{{ card.title }}</h2>
+
+        <div class="card-info">
+            <p><strong>Thème :</strong> {{ card.theme.name }}</p>
+            <p><strong>Détail :</strong> {{ card.detail }}</p>
+        </div>
+
+        {# Affichage de la couleur de texte #}
+        {% if card.textColor %}
+            <div class="text-color-section">
+                <h3>Couleur de texte :</h3>
+                <div class="ligne">
+                    <span class="color-pastille" style="background-color: {{ card.textColor.colorCode }};"></span>
+                    <span>{{ card.textColor.name }}</span>
+                </div>
+            </div>
+        {% endif %}
+
+        {# Affichage de la couleur de fond #}
+        {% if card.backgroundColor %}
+            <div class="background-color-section">
+                <h3>Couleur de fond :</h3>
+                <div class="ligne">
+                    <span class="color-pastille" style="background-color: {{ card.backgroundColor.colorCode }};"></span>
+                    <span>{{ card.backgroundColor.name }}</span>
+                </div>
+            </div>
+        {% endif %}
+
+        {# Affichage des images #}
+        {% if card.backgroundImageUrls|length > 0 %}
+            <div class="background-images">
+                <h3>Images de fond :</h3>
+                <div class="image-gallery">
+                    {% for imageUrl in card.backgroundImageUrls %}
+                        <img src="{{ asset(imageUrl) }}" alt="Image de fond" style="max-width: 200px; margin: 10px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {# Affichage des sections supplémentaires (MoreInfo) #}
+        {% if card.moreInfos|length > 0 %}
+            <div class="more-infos">
+                <h3>Sections supplémentaires :</h3>
+                {% for moreInfo in card.moreInfos %}
+                    <div class="more-info-section" style="margin-bottom: 20px; padding: 15px; background-color: #f9f9f9; border-radius: var(--radius-md);">
+                        <h4>{{ moreInfo.title }}</h4>
+                        <p>{{ moreInfo.details|nl2br }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p><em>Aucune section supplémentaire.</em></p>
+        {% endif %}
+
+        {# Boutons d'action #}
+        <div class="actions ligne" style="margin-top: 20px;">
+            <a href="{{ path('cards_edit', {id: card.id}) }}" class="buttonEdit">Modifier</a>
+            <a href="{{ path('cards_delete', {id: card.id}) }}" class="buttonRemove" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette carte ?')">Supprimer</a>
+            <a href="{{ path('cards_list') }}" class="btn">Retour à la liste</a>
+        </div>
+    </div>
+{% endblock %}

@@ -312,6 +312,95 @@ section {
     align-items: center;
 }
 
+.cards-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.card-preview {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-base);
+    border-left: 4px solid transparent;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-preview::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--color-blue-primary), #2563EB, #1e40af);  /* Bleu dégradé */
+}
+
+.card-preview:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+    border-left-color: var(--color-blue-primary);
+}
+
+.card-preview h3 {
+    font-size: 1.25rem;
+    margin: 0 0 0.75rem 0;
+    text-align: left;
+    line-height: 1.3;
+    color: var(--color-neutral-950);
+}
+
+.card-preview h3 a {
+    color: var(--color-neutral-950);
+    text-decoration: none;
+    display: block;
+    padding: 0.25rem 0;
+    border-radius: var(--radius-sm);
+    transition: var(--transition-base);
+}
+
+.card-preview h3 a:hover {
+    background: var(--color-blue-50);
+    color: var(--color-blue-primary);
+    padding-left: 0.5rem;
+}
+
+.card-preview .theme {
+    font-size: 0.875rem;
+    color: var(--color-blue-primary);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding: 0.25rem 0.75rem;
+    background: var(--color-blue-50);
+    border-radius: var(--radius-sm);
+    align-self: flex-start;
+    max-width: fit-content;
+}
+
+.card-preview .actions {
+    margin-top: auto;
+    display: flex;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.card-preview .btn {
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+}
+
 /* ============================================
    MESSAGES DE VALIDATION
    ============================================ */

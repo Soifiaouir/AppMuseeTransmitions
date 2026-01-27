@@ -6,10 +6,8 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use App\Repository\MediaRepository;
-use App\Validator\NoHtml;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -26,29 +24,31 @@ class Media
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['theme:read', 'media:read'])]
+    #[Groups(['theme:read', 'media:read', 'card:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['media:read', 'theme:read'])]
+    #[Groups(['media:read', 'theme:read', 'card:read'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 50)]
-    #[Groups(['media:read', 'theme:read'])]
+    #[Groups(['media:read', 'theme:read', 'card:read'])]
     private ?string $type = null;
 
     #[ORM\Column(name: "userGivenName", length: 255)]
-    #[Groups(['theme:read', 'media:read'])]
+    #[Groups(['theme:read', 'media:read', 'card:read'])]
     private ?string $userGivenName = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['media:read', 'card:read'])]
     private ?int $size = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['media:read', 'theme:read'])]
+    #[Groups(['media:read', 'theme:read', 'card:read'])]
     private ?string $extensionFile = null;
 
     #[ORM\Column]
+    #[Groups(['media:read', 'card:read'])]
     private ?\DateTimeImmutable $uploadedAt = null;
 
     /**
@@ -56,7 +56,8 @@ class Media
      */
     #[ORM\ManyToMany(targetEntity: Card::class, inversedBy: 'medias')]
     #[ORM\JoinTable(name: 'media_card')]
-    #[Groups(['theme:read', 'media:read'])]
+    // ⚠️ Ne pas mettre card:read ici pour éviter les références circulaires
+    #[Groups(['media:read'])]
     private Collection $cards;
 
     /**
@@ -200,23 +201,28 @@ class Media
     }
 
     /**
-     * Retourne le chemin complet du fichier
+     * Retourne le chemin complet du fichier (relatif au dossier media)
+     * Ex: "image/123.jpg"
      */
     public function getFilePath(): string
     {
-        return $this->type . '/' . $this->name;
+        return $this->type . '/' . $this->name . '.' . $this->extensionFile;
     }
 
+    /**
+     * Retourne le nom complet du fichier avec extension
+     * Ex: "123.jpg"
+     */
     public function getFullFileName(): string
     {
         return $this->name . '.' . $this->extensionFile;
     }
 
     /**
-     * Chemin public pour l'API (ex: /uploads/media/video/1.mp4)
+     * Chemin public pour l'API (ex: /uploads/media/image/123.jpg)
      * Utilisable directement en React: REACT_API_URL + media.publicPath
      */
-    #[Groups(['media:read', 'theme:read'])]
+    #[Groups(['media:read', 'theme:read', 'card:read'])]
     public function getPublicPath(): ?string
     {
         if (!$this->name || !$this->type || !$this->extensionFile) {
@@ -224,5 +230,4 @@ class Media
         }
         return sprintf('/uploads/media/%s/%s.%s', $this->type, $this->name, $this->extensionFile);
     }
-
 }

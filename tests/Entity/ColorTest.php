@@ -3,7 +3,6 @@
 namespace App\Tests\Entity;
 
 use App\Entity\Color;
-use App\Entity\Theme;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,10 +19,13 @@ use PHPUnit\Framework\TestCase;
 
 class ColorTest extends TestCase
 {
-    public function testConstructorColor(): void{
+    public function testConstructorColor(): void
+    {
         $color = new Color();
-        $this->assertCount(0, $color->getThemes());
-        $this->assertInstanceOf(\Doctrine\Common\Collections\Collection::class, $color->getThemes());
+        // Ici, on ne teste plus $themes car la relation ManyToMany Theme n'existe plus
+        // On garde juste un test de base pour l'entité
+        $this->assertNull($color->getName());
+        $this->assertNull($color->getColorCode());
     }
 
     public function testGetAndSetName(): void
@@ -77,73 +79,10 @@ class ColorTest extends TestCase
         $this->assertSame('', $result);
     }
 
-    public function testAddThemeAddsThemeToCollection(): void
-    {
-        // ARRANGE
-        $color = new Color();
-        $theme = new Theme();
-
-        // ACT
-        $color->addTheme($theme);
-
-        // ASSERT
-        $this->assertCount(1, $color->getThemes());
-        $this->assertTrue($color->getThemes()->contains($theme));
-    }
-
-    public function testAddThemeEdit(): void
-    {
-        // ARRANGE
-        $color = new Color();
-        $theme = new Theme();
-
-        // ACT
-        $color->addTheme($theme);
-
-        // ASSERT - Vérifie que Theme contient aussi Color
-        $this->assertTrue($theme->getColors()->contains($color));
-    }
-
-    public function testAddThemeDoesNotAddDuplicates(): void
-    {
-        // ARRANGE
-        $color = new Color();
-        $theme = new \App\Entity\Theme();
-
-        // ACT - Ajouter 2 fois le même thème
-        $color->addTheme($theme);
-        $color->addTheme($theme);
-
-        // ASSERT - Doit rester à 1
-        $this->assertCount(1, $color->getThemes());
-    }
-
-    public function testRemoveThemeRemovesThemeFromCollection(): void
-    {
-        // ARRANGE
-        $color = new Color();
-        $theme = new \App\Entity\Theme();
-        $color->addTheme($theme);
-
-        // ACT
-        $color->removeTheme($theme);
-
-        // ASSERT
-        $this->assertCount(0, $color->getThemes());
-        $this->assertFalse($color->getThemes()->contains($theme));
-    }
-
-    public function testRemoveThemeUpdatesInverseRelation(): void
-    {
-        // ARRANGE
-        $color = new Color();
-        $theme = new \App\Entity\Theme();
-        $color->addTheme($theme);
-
-        // ACT
-        $color->removeTheme($theme);
-
-        // ASSERT - Vérifie que Theme ne contient plus Color
-        $this->assertFalse($theme->getColors()->contains($color));
-    }
+    // Les tests ci‑dessous sont retirés car Color n'a plus de relation ManyToMany avec Theme
+    // public function testAddThemeAddsThemeToCollection(): void { ... }
+    // public function testAddThemeEdit(): void { ... }
+    // public function testAddThemeDoesNotAddDuplicates(): void { ... }
+    // public function testRemoveThemeRemovesThemeFromCollection(): void { ... }
+    // public function testRemoveThemeUpdatesInverseRelation(): void { ... }
 }
