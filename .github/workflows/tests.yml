@@ -47,6 +47,6 @@ jobs:
               git config --global --add safe.directory /app &&
               composer install --no-interaction --prefer-dist --optimize-autoloader &&
               php bin/console doctrine:database:create --env=test --no-interaction --if-not-exists &&
-              php bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration &&
+              php bin/console doctrine:schema:create --env=test --no-interaction &&
               vendor/bin/phpunit --colors=always
             "
