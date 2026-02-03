@@ -1,24 +1,43 @@
 {% extends 'base.html.twig' %}
 
-{% block body %}
-    <h2>Liste des couleurs</h2>
-    {% if colors|length == 0 %}
-        <p>Pas de couleur dans la base de donnée</p>
-    {% else %}
-        {% for color in colors %}
-            <div class="ligne">
-                <p>{{ color.name }}</p>
-                <div class="color-pastille" style="background-color: {{ color.colorCode }};"></div>
-                <a href="{{ path('color_edit', {'id': color.id}) }}"><button class="buttonEdit">Modifier la couleur</button></a>
-                <a href="{{ path('color_remove', {'id': color.id}) }}"><button class="buttonRemove">Supprimer la couleur</button></a>
-            </div>
-        {% endfor %}
-    {% endif %}
-    <a href="{{ path('color_add') }}">
-        <button class="buttonCreate">Ajouter une couleur</button>
-    </a>
-{% endblock %}
+{% block title %}Liste des couleurs{% endblock %}
 
-{% block title %}
-    {{ parent() }} Listes des couleurs
+{% block body %}
+    <main>
+        <h2>Liste des couleurs</h2>
+
+        {% if colors|length == 0 %}
+            <p>Aucune couleur dans la base de données</p>
+        {% else %}
+            <section>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Aperçu</th>
+                        <th>Nom</th>
+                        <th>Code HEX</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for color in colors %}
+                        <tr>
+                            <td>
+                                <div class="color-pastille" style="background-color: {{ color.colorCode }};"></div>
+                            </td>
+                            <td>{{ color.name }}</td>
+                            <td>{{ color.colorCode }}</td>
+                            <td>
+                                <a href="{{ path('color_edit', {'id': color.id}) }}">Modifier</a>
+                                <a href="{{ path('color_remove', {'id': color.id}) }}" class="buttonRemove" onclick="return confirm('Supprimer cette couleur ?')">Supprimer</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        {% endif %}
+
+        <a href="{{ path('color_add') }}" class="buttonCreate">Ajouter une couleur</a>
+    </main>
 {% endblock %}

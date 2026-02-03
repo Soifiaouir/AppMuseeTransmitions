@@ -23,11 +23,11 @@ class MediaType extends AbstractType
             // Fichier à uploader
             ->add('file', FileType::class, [
                 'label' => 'Fichier (Image, Vidéo ou Audio)',
-                'mapped' => false, // Non mappé car géré manuellement
+                'mapped' => false,
                 'required' => true,
                 'constraints' => [
                     new File([
-                        'maxSize' => '500M',
+                        'maxSize' => '300M',
                         'mimeTypes' => [
                             // Images
                             'image/jpeg',
@@ -47,7 +47,9 @@ class MediaType extends AbstractType
                             'audio/ogg',
                             'audio/webm',
                         ],
-                        'mimeTypesMessage' => 'Veuillez uploader un fichier valide (image, vidéo ou audio)',
+                        'mimeTypesMessage' => 'Veuillez uploader un fichier valide (image, vidéo ou audio).',
+                        'extensions' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'mpeg', 'webm', 'mp3', 'wav', 'ogg'],
+                        'extensionsMessage' => 'Extension de fichier non autorisée.',
                         'maxSizeMessage' => 'Le fichier est trop volumineux ({{ size }} {{ suffix }}). Maximum autorisé : {{ limit }} {{ suffix }}.',
                     ])
                 ],
@@ -55,14 +57,12 @@ class MediaType extends AbstractType
                     'accept' => 'image/*,video/*,audio/*'
                 ]
             ])
-
             // Nom donné par l'utilisateur (optionnel, peut être modifié)
             ->add('userGivenName', TextType::class, [
                 'label' => 'Nom du média',
                 'required' => false,
-                'help' => 'Laissez vide pour utiliser le nom du fichier'
+                'help' => 'Laissez vide pour utiliser le nom du fichier',
             ])
-
             // Type de média (optionnel si vous voulez le choisir manuellement)
             ->add('type', ChoiceType::class, [
                 'label' => 'Type de média',
@@ -74,21 +74,6 @@ class MediaType extends AbstractType
                 'required' => false,
                 'placeholder' => 'Détection automatique',
                 'help' => 'Laissez vide pour détection automatique'
-            ])
-
-            // Associations
-            ->add('cards', EntityType::class, [
-                'class' => Card::class,
-                'choice_label' => 'title',
-                'multiple' => true,
-                'required' => false,
-                'expanded' => false,
-                'attr' => [
-                    'class' => 'form-select',
-                    'size' => 5
-                ],
-                'label' => 'Associer à des cartes',
-                'help' => 'Maintenez Ctrl (ou Cmd) pour sélectionner plusieurs cartes'
             ])
             ->add('themes', EntityType::class, [
                 'class' => Theme::class,
@@ -103,7 +88,6 @@ class MediaType extends AbstractType
                 'label' => 'Associer à des thèmes',
                 'help' => 'Maintenez Ctrl (ou Cmd) pour sélectionner plusieurs thèmes'
             ])
-
             ->add('submit', SubmitType::class, [
                 'label' => 'Valider',
                 'attr' => ['class' => 'submitButton']

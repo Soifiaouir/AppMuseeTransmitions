@@ -7,7 +7,6 @@ use App\Form\RegistrationFormType;
 use App\Repository\UserRepository;
 use App\Repository\ThemeRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\LoggerInterface;
 use Random\RandomException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,7 +14,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Contracts\Service\Attribute\Required;
 
 #[IsGranted('ROLE_ADMIN')]
 #[Route('/', name: 'admin_')]
@@ -29,7 +27,7 @@ final class AdminController extends AbstractController
     }
 
     #[Route('/dashboard', name: 'dashboard')]
-    public function dashbord(ThemeRepository $themeRepository): Response
+    public function dashboard(ThemeRepository $themeRepository): Response
     {
         $users = $this->userRepository->findAll();
         $themes = $themeRepository->findAll();
@@ -57,6 +55,9 @@ final class AdminController extends AbstractController
             // Encoder le mot de passe temporaire
             $user->setPassword($this->passwordHasher->hashPassword($user, $plainPassword));
 
+            // Stocker le mot de passe temporaire en clair pour que l'admin puisse le voir
+            $user->setTempPassword($plainPassword);
+
             // Gérer les rôles
             $roles = $formRegistration->get('roles')->getData();
 
@@ -75,7 +76,7 @@ final class AdminController extends AbstractController
             $this->em->flush();
 
             $this->addFlash('success', sprintf(
-                'L\'utilisateur %s a été créé avec succès. Il devra changer son mot de passe à la première connexion.',
+                'L\'utilisateur %s a été créé avec succès. Le mot de passe temporaire est visible dans le tableau.',
                 $user->getUsername()
             ));
             return $this->redirectToRoute('admin_dashboard');
@@ -89,7 +90,6 @@ final class AdminController extends AbstractController
     /**
      * @throws RandomException
      */
-
     #[Route('/user/{id}/reset_password', name: 'reset_password', requirements: ['id' => '\d+'])]
     public function reset_password(int $id): Response
     {
@@ -100,16 +100,24 @@ final class AdminController extends AbstractController
             return $this->redirectToRoute('admin_dashboard');
         }
 
+        // Générer un nouveau mot de passe temporaire
         $tempPassword = $this->generateTemporaryPassword();
+
+        // Hasher et stocker le mot de passe
         $user->setPassword($this->passwordHasher->hashPassword($user, $tempPassword));
+
+        // Stocker le mot de passe temporaire en clair pour que l'admin puisse le voir
+        $user->setTempPassword($tempPassword);
+
+        // Forcer le changement de mot de passe
         $user->setPasswordChange(true);
         $user->setPasswordChangeDate(null);
 
         $this->em->flush();
 
-        $this->addFlash('success', 'Mot de de passe temporaire réinitialisé.');
+        $this->addFlash('success', 'Mot de passe temporaire réinitialisé.');
         $this->addFlash('Warning', 'Nouveau mot de passe temporaire : '. $tempPassword);
-        $this->addFlash('Warning', 'Enregistrez le et communiquez le a l\'utilisateur '. $user->getUsername());
+        $this->addFlash('Warning', 'Le mot de passe est également visible dans le tableau ci-dessous.');
 
         return $this->redirectToRoute('admin_dashboard');
     }
@@ -117,7 +125,8 @@ final class AdminController extends AbstractController
     /**
      * @throws RandomException
      */
-    private function generateTemporaryPassword(): string{
+    private function generateTemporaryPassword(): string
+    {
         $password = '';
         $chars = 'azertyuiopqsdfghjklmwxcvbn789456123';
 
@@ -131,18 +140,10 @@ final class AdminController extends AbstractController
     #[Route('/user/{id}/remove', name: 'remove_user', requirements:['id' => '\d+'])]
     public function removeUser(User $user): Response
     {
-        // Vérification du token CSRF
-//        if ($this->isCsrfTokenValid('delete' . $user->getId(), $request->request->get('_token'))) {
-//            $username = $user->getUsername();
+        $this->em->remove($user);
+        $this->em->flush();
 
-            $this->em->remove($user);
-            $this->em->flush();
-
-            $this->addFlash('success', sprintf('L\'utilisateur %s a été supprimé.',$user->getUsername()));
-
-// else {
-//            $this->addFlash('error', 'Token CSRF invalide.');
-//        }
+        $this->addFlash('success', sprintf('L\'utilisateur %s a été supprimé.', $user->getUsername()));
 
         return $this->redirectToRoute('admin_dashboard');
     }

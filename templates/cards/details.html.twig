@@ -1,72 +1,141 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}
-     Détails de la carte {{ card.title }}
-{% endblock %}
+{% block title %}Détails de la carte {{ card.title }}{% endblock %}
 
 {% block body %}
-    <div class="card-details">
-        <h2>{{ card.title }}</h2>
+    <div class="container">
+        <div class="card">
 
-        <div class="card-info">
-            <p><strong>Thème :</strong> {{ card.theme.name }}</p>
-            <p><strong>Détail :</strong> {{ card.detail }}</p>
-        </div>
-
-        {# Affichage de la couleur de texte #}
-        {% if card.textColor %}
-            <div class="text-color-section">
-                <h3>Couleur de texte :</h3>
-                <div class="ligne">
-                    <span class="color-pastille" style="background-color: {{ card.textColor.colorCode }};"></span>
-                    <span>{{ card.textColor.name }}</span>
-                </div>
+            {# En-tête de la carte #}
+            <div class="theme-header">
+                <h2>{{ card.title }}</h2>
+                {% if card.isArchived() %}
+                    <p class="warning">Cette carte est archivée</p>
+                {% endif %}
             </div>
-        {% endif %}
 
-        {# Affichage de la couleur de fond #}
-        {% if card.backgroundColor %}
-            <div class="background-color-section">
-                <h3>Couleur de fond :</h3>
-                <div class="ligne">
-                    <span class="color-pastille" style="background-color: {{ card.backgroundColor.colorCode }};"></span>
-                    <span>{{ card.backgroundColor.name }}</span>
-                </div>
-            </div>
-        {% endif %}
-
-        {# Affichage des images #}
-        {% if card.backgroundImageUrls|length > 0 %}
-            <div class="background-images">
-                <h3>Images de fond :</h3>
-                <div class="image-gallery">
-                    {% for imageUrl in card.backgroundImageUrls %}
-                        <img src="{{ asset(imageUrl) }}" alt="Image de fond" style="max-width: 200px; margin: 10px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
-                    {% endfor %}
-                </div>
-            </div>
-        {% endif %}
-
-        {# Affichage des sections supplémentaires (MoreInfo) #}
-        {% if card.moreInfos|length > 0 %}
-            <div class="more-infos">
-                <h3>Sections supplémentaires :</h3>
-                {% for moreInfo in card.moreInfos %}
-                    <div class="more-info-section" style="margin-bottom: 20px; padding: 15px; background-color: #f9f9f9; border-radius: var(--radius-md);">
-                        <h4>{{ moreInfo.title }}</h4>
-                        <p>{{ moreInfo.details|nl2br }}</p>
+            {# Informations principales #}
+            <div class="theme-section">
+                <div class="info-box">
+                    <h2>Informations</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Thème :</strong>
+                            <a href="{{ path('details_theme', {'id': card.theme.id}) }}">{{ card.theme.name }}</a>
+                        </div>
+                        <div class="info-item">
+                            <strong>ID :</strong> {{ card.id }}
+                        </div>
                     </div>
-                {% endfor %}
+                    <div class="info-item" >
+                        <strong>Détail :</strong>
+                        <p class="card-excerpt">{{ card.detail }}</p>
+                    </div>
+                </div>
             </div>
-        {% else %}
-            <p><em>Aucune section supplémentaire.</em></p>
-        {% endif %}
 
-        {# Boutons d'action #}
-        <div class="actions ligne" style="margin-top: 20px;">
-            <a href="{{ path('cards_edit', {id: card.id}) }}" class="buttonEdit">Modifier</a>
-            <a href="{{ path('cards_delete', {id: card.id}) }}" class="buttonRemove" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette carte ?')">Supprimer</a>
-            <a href="{{ path('cards_list') }}" class="btn">Retour à la liste</a>
+            {# Couleurs #}
+            {% if card.textColor or card.backgroundColor %}
+                <div class="theme-section">
+                    <h2>Couleurs</h2>
+                    <div class="info-grid">
+                        {% if card.textColor %}
+                            <div class="info-item">
+                                <strong>Couleur de texte :</strong>
+                                <div class="color-display">
+                                    <span class="color-pastille" style="background-color: {{ card.textColor.colorCode }};"></span>
+                                    <span class="color-code">{{ card.textColor.name }}</span>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if card.backgroundColor %}
+                            <div class="info-item">
+                                <strong>Couleur de fond :</strong>
+                                <div class="color-display">
+                                    <span class="color-pastille" style="background-color: {{ card.backgroundColor.colorCode }};"></span>
+                                    <span class="color-code">{{ card.backgroundColor.name }}</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {# Médias associés #}
+            {% if card.medias|length > 0 %}
+                <div class="theme-section">
+                    <h2>Médias associés ({{ card.medias|length }})</h2>
+                    <div class="cards-list">
+                        {% for media in card.medias %}
+                            <div class="card-preview">
+                                {% if media.type == 'image' %}
+                                    <div class="media-preview">
+                                        <img src="{{ asset('uploads/media/' ~ media.filePath) }}"
+                                             alt="{{ media.userGivenName }}"
+                                             class="media-image-full">
+                                    </div>
+                                {% else %}
+                                    <div class="media-placeholder">
+                                        <p class="media-type-label">{{ media.type|upper }}</p>
+                                    </div>
+                                {% endif %}
+                                <h3 class="media-title">{{ media.userGivenName }}</h3>
+                                <p class="media-info">
+                                    Type: {{ media.type|upper }} • {{ media.extensionFile|upper }}
+                                </p>
+                                <div class="actions">
+                                    <a href="{{ path('media_detail', {'id': media.id}) }}" class="btn buttonEdit">
+                                        Voir détails
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {# Sections supplémentaires (MoreInfo) #}
+            {% if card.moreInfos|length > 0 %}
+                <div class="theme-section">
+                    <h2>Sections supplémentaires ({{ card.moreInfos|length }})</h2>
+                    <div class="cards-list">
+                        {% for moreInfo in card.moreInfos %}
+                            <div class="card-preview">
+                                <h3>{{ moreInfo.title }}</h3>
+                                <p class="card-excerpt">{{ moreInfo.details|nl2br }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="theme-section">
+                    <div class="warning">
+                        Aucune section supplémentaire pour cette carte.
+                    </div>
+                </div>
+            {% endif %}
+
+            {# Actions #}
+            <hr class="separator">
+
+            <div class="ligne">
+                {% if not card.isArchived() %}
+                    <a href="{{ path('cards_edit', {'id': card.id}) }}" class="buttonEdit">
+                        Modifier
+                    </a>
+                {% endif %}
+
+                <a href="{{ path('cards_delete', {'id': card.id}) }}"
+                   class="buttonRemove"
+                   onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette carte ?')">
+                    Supprimer
+                </a>
+
+                <a href="{{ path('cards_list') }}" class="buttonEdit">
+                    Retour à la liste
+                </a>
+            </div>
         </div>
     </div>
 {% endblock %}

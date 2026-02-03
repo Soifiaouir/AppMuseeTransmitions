@@ -16,6 +16,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\IsTrue;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Regex;
 
 class RegistrationFormType extends AbstractType
 {
@@ -25,8 +26,8 @@ class RegistrationFormType extends AbstractType
             ->add('username', TextType::class, [
                 'label' => 'Pseudo',
                 'label_attr' => ['class' => 'formLabel'],
+                'row_attr' => ['class' => 'formWidget'],
                 'attr' => [
-                    'class' => 'formWidget',
                     'placeholder' => 'Votre pseudo'
                 ]
             ])
@@ -36,8 +37,8 @@ class RegistrationFormType extends AbstractType
                 'first_options' => [
                     'label' => 'Mot de passe temporaire',
                     'label_attr' => ['class' => 'formLabel'],
+                    'row_attr' => ['class' => 'formWidget'],
                     'attr' => [
-                        'class' => 'formWidget password-field',
                         'autocomplete' => 'new-password',
                         'placeholder' => 'Minimum 8 caractères'
                     ]
@@ -45,8 +46,8 @@ class RegistrationFormType extends AbstractType
                 'second_options' => [
                     'label' => 'Confirmer le mot de passe',
                     'label_attr' => ['class' => 'formLabel'],
+                    'row_attr' => ['class' => 'formWidget'],
                     'attr' => [
-                        'class' => 'formWidget password-field',
                         'autocomplete' => 'new-password',
                         'placeholder' => 'Retapez votre mot de passe'
                     ]
@@ -61,26 +62,28 @@ class RegistrationFormType extends AbstractType
                         'minMessage' => 'Votre mot de passe doit contenir au moins {{ limit }} caractères',
                         'max' => 4096,
                     ]),
+                    new Regex([
+                        'pattern' => '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/',
+                        'message' => '8+ caractères : 1 majuscule, 1 minuscule, 1 chiffre requis',
+                    ]),
                 ],
             ])
             ->add('roles', ChoiceType::class, [
                 'label' => 'Rôle',
                 'label_attr' => ['class' => 'formLabel'],
+                'row_attr' => ['class' => 'formWidget'],
                 'choices' => [
                     'Utilisateur' => 'ROLE_USER',
                     'Administrateur' => 'ROLE_ADMIN',
                 ],
                 'multiple' => true,
                 'expanded' => true,
-                'required' => false,
-                'attr' => ['class' => 'formWidget']
+                'required' => false
             ])
             ->add('agreeTerms', CheckboxType::class, [
                 'label' => 'J\'accepte les conditions d\'utilisation',
                 'label_attr' => ['class' => 'formLabel'],
-                'attr' => [
-                    'class' => 'formWidget'
-                ],
+                'row_attr' => ['class' => 'formWidget'],
                 'mapped' => false,
                 'constraints' => [
                     new IsTrue([

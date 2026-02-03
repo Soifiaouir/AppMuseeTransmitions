@@ -11,7 +11,9 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+#[IsGranted('ROLE_USER')]
 #[Route('/cards', name: 'cards_')]
 final class CardsController extends AbstractController
 {
@@ -33,7 +35,6 @@ final class CardsController extends AbstractController
             return $this->redirectToRoute('cards_list', ['page' => $maxPages]);
         }
         $cards = $this->cardRepository->getCardByThemeWithPagination($page);
-        $paginator = $cards;
 
         return $this->render('cards/list.html.twig', [
             'cards' => $cards,
@@ -87,7 +88,7 @@ final class CardsController extends AbstractController
     #[Route('/details/{id}', name: 'details', requirements: ['id' => '\d+'])]
     public function details(int $id): Response
     {
-        $card = $this->cardRepository->find($id);
+        $card = $this->cardRepository->findOneWithRelations($id);
         return $this->render('cards/details.html.twig', [
             'card' => $card,
         ]);
