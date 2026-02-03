@@ -3,67 +3,169 @@
 {% block title %}Détail de {{ theme.name }}{% endblock %}
 
 {% block body %}
-    <div>
+    <div class="container">
+        <div class="card">
 
-        <div>
-            <h2>{{ theme.name }}</h2>
-            <p>Créé le {{ theme.dateOfCreation|date('d/m/Y') }}</p>
-        </div>
-
-        <div>
-            <h2>Informations</h2>
-            ID : {{ theme.id }}
-            {% if theme.createdBy %}
-                Créé par : {{ theme.createdBy.username }}
-            {% endif %}
-        </div>
-
-        {% if theme.cards|length > 0 %}
-            <div>
-                <h2>{{ theme.cards|length }} carte{{ theme.cards|length > 1 ? 's' }}</h2>
-                {% for card in theme.cards %}
-                    <div>
-                        <h3>{{ card.title }}</h3>
-                        <p>{{ card.detail|slice(0, 100) }}{% if card.detail|length > 100 %}...{% endif %}</p>
-                        <a href="{{ path('cards_details', {'id': card.id}) }}">Voir</a>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-
-        {% if theme.medias|length > 0 %}
-            <div>
-                <h2>{{ theme.medias|length }} média{{ theme.medias|length > 1 ? 's' }}</h2>
-                {% for media in theme.medias %}
-                    <div>
-                        {% if media.type == 'image' %}
-                            <img src="{{ asset('uploads/media/' ~ media.filePath) }}">
-                        {% endif %}
-                        <h3>{{ media.userGivenName }}</h3>
-                        <a href="{{ path('media_detail', {'id': media.id}) }}">Détails</a>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-
-        {% if theme.backgroundImage %}
-            <div>
-                <h2>Image de fond</h2>
-                <img src="{{ asset('uploads/media/' ~ theme.backgroundImage.filePath) }}">
-            </div>
-        {% endif %}
-
-        <div>
-            <a href="{{ path('edit_theme', {'id': theme.id}) }}">Modifier</a>
-            <a href="{{ path('home') }}">Retour</a>
-            {% if is_granted('ROLE_ADMIN') %}
-                {% if not theme.archived %}
-                    <a href="{{ path('archive_theme', {'id': theme.id}) }}" onclick="return confirm('Archiver ?')">Archiver</a>
-                {% else %}
-                    <a href="{{ path('unarchive_theme', {'id': theme.id}) }}" onclick="return confirm('Désarchiver ?')">Désarchiver</a>
+            {# En-tête du thème #}
+            <div class="theme-header">
+                <h1>{{ theme.name }}</h1>
+                <p class="theme-date">Créé le {{ theme.dateOfCreation|date('d/m/Y à H:i') }}</p>
+                {% if theme.isArchived() %}
+                    <p class="warning">Ce thème est archivé</p>
                 {% endif %}
-            {% endif %}
-        </div>
+            </div>
 
+            {# Image de fond du thème #}
+            {% if theme.backgroundImage %}
+                <div class="theme-section">
+                    <h2>Image de fond</h2>
+                    <div class="media-image-wrapper">
+                        <img src="{{ asset('uploads/media/' ~ theme.backgroundImage.filePath) }}"
+                             alt="Image de fond de {{ theme.name }}"
+                             class="media-image-full">
+                    </div>
+                </div>
+            {% endif %}
+
+            {# Couleur de fond du thème #}
+            {% if theme.themeBackgroundColor %}
+                <div class="theme-section">
+                    <h2>Couleur du thème</h2>
+                    <div class="color-display">
+                        <div class="color-pastille color-pastille-large" style="background-color: {{ theme.themeBackgroundColor.colorCode }};"></div>
+                        <span class="color-code">{{ theme.themeBackgroundColor.colorCode }}</span>
+                    </div>
+                </div>
+            {% endif %}
+
+            {# Informations du thème #}
+            <div class="theme-section">
+                <div class="info-box">
+                    <h2>Informations</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>ID :</strong> {{ theme.id }}
+                        </div>
+                        {% if theme.createdBy %}
+                            <div class="info-item">
+                                <strong>Créé par :</strong> {{ theme.createdBy.username }}
+                            </div>
+                        {% endif %}
+                        <div class="info-item">
+                            <strong>Nombre de cartes :</strong> {{ theme.cards|length }}
+                            <a href="{{ path('cards_add') }}"><button class="buttonCreate">Ajouter une Carte à ce thème</button></a>
+                        </div>
+                        <div class="info-item">
+                            <strong>Nombre de médias :</strong> {{ theme.medias|length }}
+                            <a href="{{ path('media_add') }}"><button class="buttonCreate">Ajouter un média à ce theme</button></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Cartes liées au thème #}
+            {% if theme.cards|length > 0 %}
+                <div class="theme-section">
+                    <h2>{{ theme.cards|length }} carte{{ theme.cards|length > 1 ? 's' : '' }} associée{{ theme.cards|length > 1 ? 's' : '' }}</h2>
+                    <div class="cards-list">
+                        {% for card in theme.cards %}
+                            <div class="card-preview">
+                                <h3>
+                                    <a href="{{ path('cards_details', {'id': card.id}) }}">
+                                        {{ card.title }}
+                                    </a>
+                                </h3>
+                                {% if card.detail %}
+                                    <p class="card-excerpt">
+                                        {{ card.detail|slice(0, 150) }}{% if card.detail|length > 150 %}...{% endif %}
+                                    </p>
+                                {% endif %}
+                                <div class="actions">
+                                    <a href="{{ path('cards_details', {'id': card.id}) }}" class="btn buttonEdit">
+                                        Voir détails
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="theme-section">
+                    <div class="warning">
+                        Aucune carte n'est encore associée à ce thème.
+                    </div>
+                </div>
+            {% endif %}
+
+            {# Médias liés au thème #}
+            {% if theme.medias|length > 0 %}
+                <div class="theme-section">
+                    <h2>{{ theme.medias|length }} média{{ theme.medias|length > 1 ? 's' : '' }} associé{{ theme.medias|length > 1 ? 's' : '' }}</h2>
+                    <div class="cards-list">
+                        {% for media in theme.medias %}
+                            <div class="card-preview">
+                                {% if media.type == 'image' %}
+                                    <div class="media-preview">
+                                        <img src="{{ asset('uploads/media/' ~ media.filePath) }}"
+                                             alt="{{ media.userGivenName }}"
+                                             class="media-thumbnail">
+                                    </div>
+                                {% else %}
+                                    <div class="media-placeholder">
+                                        <p class="media-type-label">{{ media.type|upper }}</p>
+                                    </div>
+                                {% endif %}
+                                <h3 class="media-title">{{ media.userGivenName }}</h3>
+                                <p class="media-info">
+                                    Type: {{ media.type|upper }} • {{ media.extensionFile|upper }}
+                                </p>
+                                <div class="actions">
+                                    <a href="{{ path('media_detail', {'id': media.id}) }}" class="btn buttonEdit">
+                                        Voir détails
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="theme-section">
+                    <div class="warning">
+                        Aucun média n'est encore associé à ce thème.
+                    </div>
+                </div>
+            {% endif %}
+
+            {# Actions #}
+            <hr class="separator">
+
+            <div class="ligne">
+                {% if not theme.isArchived() %}
+                    <a href="{{ path('edit_theme', {'id': theme.id}) }}" class="buttonEdit">
+                        Modifier
+                    </a>
+                {% endif %}
+
+                <a href="{{ path('home') }}" class="buttonEdit">
+                    Retour à la liste
+                </a>
+
+                {% if is_granted('ROLE_ADMIN') %}
+                    {% if not theme.archived %}
+                        <a href="{{ path('archive_theme', {'id': theme.id}) }}"
+                           class="buttonRemove"
+                           onclick="return confirm('Êtes-vous sûr de vouloir archiver ce thème ? Toutes les cartes et médias associés seront également archivés.')">
+                            Archiver
+                        </a>
+                    {% else %}
+                        <a href="{{ path('unarchive_theme', {'id': theme.id}) }}"
+                           class="buttonCreate"
+                           onclick="return confirm('Êtes-vous sûr de vouloir désarchiver ce thème ?')">
+                            Désarchiver
+                        </a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
     </div>
 {% endblock %}

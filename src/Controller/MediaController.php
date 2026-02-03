@@ -12,7 +12,9 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+#[IsGranted('ROLE_USER')]
 #[Route('/media', name: 'media_')]
 final class MediaController extends AbstractController
 {
@@ -23,13 +25,24 @@ final class MediaController extends AbstractController
     ) {
     }
 
-    #[Route('/', name: 'list', methods: ['GET'])]
-    public function list(): Response
+    #[Route('/{page}', name: 'list', requirements: ['page' => '\d+'], methods: ['GET'])]
+    public function list(int $page = 1): Response
     {
-        $medias = $this->mediaRepository->findBy([], ['uploadedAt' => 'DESC']);
+        $totalMedia = $this->mediaRepository->count();
+        $maxPages = ceil($totalMedia/ Media::MEDIA_PER_PAGE);
+        if($page < 1) {
+            return $this->redirectToRoute('cards_list', ['page' => 1]);
+        }
+        if($page > $maxPages) {
+            return $this->redirectToRoute('cards_list', ['page' => $maxPages]);
+        }
+        $medias = $this->mediaRepository->getMediaByThemeWithPagination($page);
 
         return $this->render('media/list.html.twig', [
             'medias' => $medias,
+            'currentPage' => $page,
+            'maxPages' => $maxPages,
+
         ]);
     }
 
@@ -44,6 +57,18 @@ final class MediaController extends AbstractController
             $file = $formMedia->get('file')->getData();
 
             if ($file) {
+                // Vérifier si le fichier existe déjà
+                $userGivenName = $media->getUserGivenName() ?: $file->getClientOriginalName();
+
+                if ($this->uploader->isDuplicate($file, $userGivenName)) {
+                    $this->addFlash('error', 'Ce fichier existe déjà dans la base de données.');
+
+                    return $this->render('media/add.html.twig', [
+                        'formMedia' => $formMedia,
+                        'media' => $media,
+                    ]);
+                }
+
                 // Initialiser les champs obligatoires AVANT le premier flush
                 $media->setName('temp'); // Valeur temporaire
                 $media->setType('temp'); // Valeur temporaire
@@ -105,7 +130,7 @@ final class MediaController extends AbstractController
     #[Route('/remove/{id}', name: 'remove', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function remove(int $id): Response
     {
-        $media = $this->mediaRepository->find($id);
+        $media = $this->em->getRepository(Media::class)->find($id);
 
         if ($media) {
             // Supprimer le fichier physique
@@ -120,4 +145,5 @@ final class MediaController extends AbstractController
 
         return $this->redirectToRoute('media_list');
     }
+
 }

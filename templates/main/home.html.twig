@@ -1,48 +1,87 @@
 {% extends 'base.html.twig' %}
 
-{% block title %} Acceuil {% endblock %}
+{% block title %}Accueil{% endblock %}
 
 {% block body %}
-    <h1>Gestions des donnee du musée des transmitions</h1>
+    <h1>Gestion des données du musée des transmissions</h1>
+
+    <a href="{{ path('add_theme') }}" class="buttonCreate">Créer un thème</a>
 
     {% if themes|length == 0 %}
-        <p>Pas de thème dans la base de données</p>
+        <div class="card">
+            <p>Aucun thème disponible dans la base de données pour le moment.</p>
+            <p>Commencez par créer votre premier thème !</p>
+        </div>
     {% else %}
         <table>
             <thead>
             <tr>
-                <th>Nom du thème
-
+                <th>Nom du thème</th>
                 {% if is_granted('ROLE_ADMIN') %}
                     <th>Statut</th>
+                    <th>Créé par</th>
                 {% endif %}
+                <th>Date de création</th>
+                <th>Cartes</th>
+                <th>Médias</th>
                 <th>Actions</th>
             </tr>
             </thead>
             <tbody>
             {% for theme in themes %}
-                <tr>
+                <tr {% if theme.isArchived() %}class="warning"{% endif %}>
                     <td>
                         <a href="{{ path('details_theme', {'id': theme.id}) }}">
                             {{ theme.name }}
                         </a>
                     </td>
                     {% if is_granted('ROLE_ADMIN') %}
-                    <td>
-                        {% if theme.isArchived() %}
-                            Archivé
-                        {% else %}
-                            Actif
-                        {% endif %}
-                    </td>
+                        <td>
+                            {% if theme.isArchived() %}
+                                Archivé
+                            {% else %}
+                                Actif
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if theme.createdBy %}
+                                {{ theme.createdBy.username }}
+                            {% else %}
+                                <em>Non défini</em>
+                            {% endif %}
+                        </td>
                     {% endif %}
-                    <td>
-                        <a href="{{ path('edit_theme', {'id': theme.id}) }}" class="buttonEdit">Modifier</a>
+                    <td>{{ theme.dateOfCreation|date('d/m/Y') }}</td>
+                    <td>{{ theme.cards|length }}</td>
+                    <td>{{ theme.medias|length }}</td>
+                    <td class="ligne">
+                        <a href="{{ path('details_theme', {'id': theme.id}) }}" class="buttonEdit">Voir</a>
+                        {% if not theme.isArchived() %}
+                            <a href="{{ path('edit_theme', {'id': theme.id}) }}" class="buttonEdit">Modifier</a>
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
+
+        {# Pagination #}
+        {% if maxPages > 1 %}
+            <div class="ligne">
+                {# Page précédente #}
+                {% if currentPage > 1 %}
+                    <a href="{{ path('home', {'page': currentPage - 1}) }}" class="buttonEdit">
+                        Précédent
+                    </a>
+                {% endif %}
+
+                {# Page suivante #}
+                {% if currentPage < maxPages %}
+                    <a href="{{ path('home', {'page': currentPage + 1}) }}" class="buttonEdit">
+                        Suivant
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
     {% endif %}
-    <a href="{{ path('add_theme') }}" class="buttonCreate">Créer un theme</a>
 {% endblock %}

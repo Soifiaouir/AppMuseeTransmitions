@@ -4,7 +4,9 @@
 namespace App\Service;
 
 use App\Entity\Media;
+use App\Repository\MediaRepository;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Mime\MimeTypes;
 
 class MediaUploader
 {
@@ -15,8 +17,28 @@ class MediaUploader
     ];
 
     public function __construct(
-        private string $mediaDirectory
+        private readonly string $mediaDirectory,
+        private readonly MediaRepository $mediaRepository,
     ) {
+    }
+
+    /**
+     * Vérifie si le fichier existe déjà en base
+     */
+    public function isDuplicate(UploadedFile $file, ?string $userGivenName = null): bool
+    {
+        $mimeType = $file->getMimeType();
+        $originalName = $userGivenName ?: $file->getClientOriginalName();
+        $fileSize = $file->getSize();
+        $extension = $file->guessExtension() ?: pathinfo($originalName, PATHINFO_EXTENSION);
+
+        $duplicate = $this->mediaRepository->findDuplicate(
+            $originalName,
+            $fileSize,
+            $extension,
+        );
+
+        return $duplicate !== null;
     }
 
     public function upload(UploadedFile $file, Media $media): Media
@@ -29,7 +51,7 @@ class MediaUploader
         // Déterminer le type (détection automatique ou forcé par le form)
         $type = $media->getType();
         if (!$type || $type === 'temp') {
-            $type = $this->detectMediaType($mimeType);
+            $type = $this->detectMediaType($mimeType, $file);
         }
 
         // Extraire l'extension
@@ -67,22 +89,38 @@ class MediaUploader
 
     public function delete(Media $media): void
     {
-        $filePath = $this->mediaDirectory . '/' . $media->getFilePath();
+        // Construire le chemin complet : type/id.extension
+        $fileName = $media->getName() . '.' . $media->getExtensionFile();
+        $filePath = $this->mediaDirectory . '/' . $media->getType() . '/' . $fileName;
 
+        // Supprimer le fichier s'il existe
         if (file_exists($filePath)) {
             unlink($filePath);
         }
     }
-
-    private function detectMediaType(string $mimeType): ?string
+    private function detectMediaType(string $mimeType, UploadedFile $file): ?string
     {
+        // 1. Vérifier le MIME fourni
         foreach (self::MEDIA_TYPES as $type => $mimes) {
             if (in_array($mimeType, $mimes, true)) {
                 return $type;
             }
         }
+        // 2. Fallback : deviner le type à partir du contenu
+        $guesser = new MimeTypes();
+        $guessedTypes = $guesser->guessMimeTypes($file->getPathname());
+
+        foreach ($guessedTypes as $guessedMime) {
+            foreach (self::MEDIA_TYPES as $type => $mimes) {
+                if (in_array($guessedMime, $mimes, true)) {
+                    return $type;
+                }
+            }
+        }
+
         return null;
     }
+
 
     public function getMediaDirectory(): string
     {

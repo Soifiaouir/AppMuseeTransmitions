@@ -5,6 +5,7 @@ namespace App\Repository;
 
 use App\Entity\Media;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -17,59 +18,22 @@ class MediaRepository extends ServiceEntityRepository
         parent::__construct($registry, Media::class);
     }
 
-    /**
-     * Trouve tous les médias d'un type spécifique
-     */
-    public function findByType(string $type): array
+    public function getMediaByThemeWithPagination(int $page)
     {
-        return $this->createQueryBuilder('m')
-            ->andWhere('m.type = :type')
-            ->setParameter('type', $type)
-            ->orderBy('m.uploadedAt', 'DESC')
-            ->getQuery()
-            ->getResult();
-    }
+        $qb = $this->createQueryBuilder('m');
+        $qb->leftJoin('m.themes', 't');
+        $qb->addGroupBy('m.id');
+        $qb->addSelect('t');
+        $qb->orderBy('t.dateOfCreation', 'DESC');
 
-    /**
-     * Trouve les médias uploadés dans les X derniers jours
-     */
-    public function findRecentMedias(int $days = 7): array
-    {
-        $date = new \DateTimeImmutable("-{$days} days");
+        $query = $qb->getQuery();
+        $limit = Media::MEDIA_PER_PAGE;
+        $offset = ($page - 1) * $limit;
+        $query->setMaxResults($limit);
+        $query->setFirstResult($offset);
 
-        return $this->createQueryBuilder('m')
-            ->andWhere('m.uploadedAt >= :date')
-            ->setParameter('date', $date)
-            ->orderBy('m.uploadedAt', 'DESC')
-            ->getQuery()
-            ->getResult();
-    }
-
-    /**
-     * Trouve les médias par extension
-     */
-    public function findByExtension(string $extension): array
-    {
-        return $this->createQueryBuilder('m')
-            ->andWhere('m.extensionFile = :extension')
-            ->setParameter('extension', $extension)
-            ->orderBy('m.uploadedAt', 'DESC')
-            ->getQuery()
-            ->getResult();
-    }
-
-    /**
-     * Trouve les médias associés à une carte spécifique
-     */
-    public function findByCard(int $cardId): array
-    {
-        return $this->createQueryBuilder('m')
-            ->innerJoin('m.cards', 'c')
-            ->andWhere('c.id = :cardId')
-            ->setParameter('cardId', $cardId)
-            ->orderBy('m.uploadedAt', 'DESC')
-            ->getQuery()
-            ->getResult();
+        $paginator = new Paginator($query);
+        return $paginator;
     }
 
     /**
@@ -77,14 +41,43 @@ class MediaRepository extends ServiceEntityRepository
      */
     public function findByTheme(int $themeId): array
     {
+
         return $this->createQueryBuilder('m')
             ->innerJoin('m.themes', 't')
-            ->andWhere('t.id = :themeId')
+            ->where('t.id = :themeId')
+            ->andWhere('m.type = :type')
+            ->andWhere('m.archived = :archived')
             ->setParameter('themeId', $themeId)
-            ->orderBy('m.uploadedAt', 'DESC')
+            ->setParameter('type', 'image')
+            ->setParameter('archived', false)
+            ->orderBy('m.userGivenName', 'ASC')
             ->getQuery()
             ->getResult();
+
+
     }
+
+    /**
+     * Trouve les images filtrées pour le formulaire (pour EntityType)
+     */
+    public function findImagesByThemeForForm(?int $themeId): array
+    {
+        $qb = $this->createQueryBuilder('m')
+            ->andWhere('m.type = :type')
+            ->setParameter('type', 'image')
+            ->orderBy('m.userGivenName', 'ASC');
+
+        // Si un thème est donné, on filtre dessus
+        if ($themeId !== null) {
+            $qb
+                ->innerJoin('m.themes', 't')
+                ->andWhere('t.id = :themeId')
+                ->setParameter('themeId', $themeId);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
 
     /**
      * Trouve les médias non associés (ni à une carte ni à un thème)
@@ -102,52 +95,21 @@ class MediaRepository extends ServiceEntityRepository
     }
 
     /**
-     * Calcule l'espace disque total utilisé par type
+     * Vérifie si un média identique existe déjà
      */
-    public function getTotalSizeByType(): array
-    {
-        $result = $this->createQueryBuilder('m')
-            ->select('m.type, SUM(m.size) as totalSize, COUNT(m.id) as count')
-            ->groupBy('m.type')
-            ->getQuery()
-            ->getResult();
-
-        return $result;
-    }
-
-    /**
-     * Compte le nombre de médias par type
-     */
-    public function countByType(): array
-    {
-        $result = $this->createQueryBuilder('m')
-            ->select('m.type, COUNT(m.id) as count')
-            ->groupBy('m.type')
-            ->getQuery()
-            ->getResult();
-
-        // Transformer en tableau associatif
-        $counts = [];
-        foreach ($result as $row) {
-            $counts[$row['type']] = $row['count'];
-        }
-
-        return $counts;
-    }
-
-    /**
-     * Recherche de médias par nom
-     */
-    public function searchByName(string $searchTerm): array
+    public function findDuplicate(string $userGivenName, int $size, string $extension): ?Media
     {
         return $this->createQueryBuilder('m')
-            ->andWhere('m.userGivenName LIKE :search OR m.name LIKE :search')
-            ->setParameter('search', '%' . $searchTerm . '%')
-            ->orderBy('m.uploadedAt', 'DESC')
+            ->where('m.userGivenName = :userGivenName')
+            ->andWhere('m.size = :size')
+            ->andWhere('m.extensionFile = :extension')
+            ->setParameter('userGivenName', $userGivenName)
+            ->setParameter('size', $size)
+            ->setParameter('extension', $extension)
+            ->setMaxResults(1)
             ->getQuery()
-            ->getResult();
+            ->getOneOrNullResult();
     }
-
     public function findImagesByTheme(int $themeId): array
     {
         $qb = $this->createQueryBuilder('m')

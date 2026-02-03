@@ -1,16 +1,17 @@
 <nav>
     {% if app.user %}
-        {% if is_granted('ROLE_ADMIN') %}
-            <a href="{{ path('admin_dashboard') }}">Dashboard</a>
-            <a href="{{ path('color_list') }}">Couleurs</a>
-        {% endif %}
-    <div class="link">
-        <a href="{{ path('home') }}">Accueil</a>
-        <a href="{{ path('cards_list') }}">Cartes</a>
-        <a href="{{ path('media_list') }}">Medias</a>
-        <a href="{{ path('app_logout') }}">logout</a>
-    </div>
-        <p>Bonjour {{ app.user.username }}</p>
+        <div>
+            {% if is_granted('ROLE_ADMIN') %}
+                <a href="{{ path('admin_dashboard') }}">Dashboard</a>
+                <a href="{{ path('color_list') }}">Couleurs</a>
+            {% endif %}
+            <a href="{{ path('home') }}">Accueil</a>
+            <a href="{{ path('cards_list') }}">Cartes</a>
+            <a href="{{ path('media_list') }}">Médias</a>
+        </div>
+        <div>
+            <p>Bonjour {{ app.user.username }}</p>
+            <a href="{{ path('app_logout') }}">Déconnexion</a>
+        </div>
     {% endif %}
-
 </nav>

@@ -3,19 +3,14 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use App\Validator\NoHtml;
-use Symfony\Component\Validator\Constraints as Assert;
-
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_USERNAME', fields: ['username'])]
-#[UniqueEntity(fields: ['username'], message: 'Il y a déjà un utilisateur avec ce pseudo')]
+#[UniqueEntity(fields: ['username'], message: 'Un compte existe déjà avec ce nom d\'utilisateur')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -24,8 +19,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 180)]
-    #[Assert\NotBlank(message: 'Pseudo obligatoire')]
-    #[NoHtml]
     private ?string $username = null;
 
     /**
@@ -38,25 +31,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
-    #[NoHtml]
     private ?string $password = null;
-    /**
-     * @var Collection<int, Theme>
-     */
-    #[ORM\OneToMany(targetEntity: Theme::class, mappedBy: 'createdBy')]
-    private Collection $themes;
 
-    #[ORM\Column(nullable: true)]
-    private ?bool $passwordChange = false;
+    #[ORM\Column]
+    private ?bool $passwordChange = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?\DateTimeInterface $passwordChangeDate = null;
 
-
-    public function __construct()
-    {
-        $this->themes = new ArrayCollection();
-    }
+    /**
+     * Mot de passe temporaire en clair (visible uniquement pour l'admin)
+     * Sera supprimé après la première connexion réussie
+     */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $tempPassword = null;
 
     public function getId(): ?int
     {
@@ -71,7 +59,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setUsername(string $username): static
     {
         $this->username = $username;
-
         return $this;
     }
 
@@ -87,6 +74,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     /**
      * @see UserInterface
+     *
+     * @return list<string>
      */
     public function getRoles(): array
     {
@@ -103,7 +92,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRoles(array $roles): static
     {
         $this->roles = $roles;
-
         return $this;
     }
 
@@ -118,67 +106,48 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPassword(string $password): static
     {
         $this->password = $password;
-
         return $this;
     }
 
     /**
-     * @return Collection<int, Theme>
+     * @see UserInterface
      */
-    public function getThemes(): Collection
+    public function eraseCredentials(): void
     {
-        return $this->themes;
-    }
-
-    public function addTheme(Theme $theme): static
-    {
-        if (!$this->themes->contains($theme)) {
-            $this->themes->add($theme);
-            $theme->setCreatedBy($this);
-        }
-
-        return $this;
-    }
-
-    public function removeTheme(Theme $theme): static
-    {
-        if ($this->themes->removeElement($theme)) {
-            // set the owning side to null (unless already changed)
-            if ($theme->getCreatedBy() === $this) {
-                $theme->setCreatedBy(null);
-            }
-        }
-
-        return $this;
-    }
-
-    public function eraseCredentials()
-    {
-        // TODO: Implement eraseCredentials() method.
+        // If you store any temporary, sensitive data on the user, clear it here
+        // $this->plainPassword = null;
     }
 
     public function isPasswordChange(): ?bool
     {
-        return $this->passwordChange === true;
+        return $this->passwordChange;
     }
 
-    public function setPasswordChange(?bool $passwordChange): static
+    public function setPasswordChange(bool $passwordChange): static
     {
         $this->passwordChange = $passwordChange;
-
         return $this;
     }
 
-    public function getPasswordChangeDate(): ?\DateTime
+    public function getPasswordChangeDate(): ?\DateTimeInterface
     {
         return $this->passwordChangeDate;
     }
 
-    public function setPasswordChangeDate(?\DateTime $passwordChangeDate): static
+    public function setPasswordChangeDate(?\DateTimeInterface $passwordChangeDate): static
     {
         $this->passwordChangeDate = $passwordChangeDate;
-
         return $this;
     }
 
+    public function getTempPassword(): ?string
+    {
+        return $this->tempPassword;
+    }
+
+    public function setTempPassword(?string $tempPassword): static
+    {
+        $this->tempPassword = $tempPassword;
+        return $this;
+    }
 }

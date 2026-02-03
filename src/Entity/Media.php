@@ -6,10 +6,12 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use App\Repository\MediaRepository;
+use App\Validator\NoHtml;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: MediaRepository::class)]
 #[ApiResource(
@@ -21,6 +23,9 @@ use Symfony\Component\Serializer\Annotation\Groups;
 )]
 class Media
 {
+
+    public const MEDIA_PER_PAGE = 10;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -29,6 +34,7 @@ class Media
 
     #[ORM\Column(length: 255)]
     #[Groups(['media:read', 'theme:read', 'card:read'])]
+    #[NoHtml]
     private ?string $name = null;
 
     #[ORM\Column(length: 50)]
@@ -36,6 +42,7 @@ class Media
     private ?string $type = null;
 
     #[ORM\Column(name: "userGivenName", length: 255)]
+    #[NoHtml]
     #[Groups(['theme:read', 'media:read', 'card:read'])]
     private ?string $userGivenName = null;
 
@@ -56,7 +63,6 @@ class Media
      */
     #[ORM\ManyToMany(targetEntity: Card::class, inversedBy: 'medias')]
     #[ORM\JoinTable(name: 'media_card')]
-    // ⚠️ Ne pas mettre card:read ici pour éviter les références circulaires
     #[Groups(['media:read'])]
     private Collection $cards;
 
@@ -68,11 +74,16 @@ class Media
     #[Groups(['media:read'])]
     private Collection $themes;
 
+    #[ORM\Column(nullable: true)]
+    private ?bool $archived = null;
+
     public function __construct()
     {
         $this->cards = new ArrayCollection();
         $this->themes = new ArrayCollection();
         $this->uploadedAt = new \DateTimeImmutable();
+        $this->archived = false;
+
     }
 
     public function getId(): ?int
@@ -229,5 +240,17 @@ class Media
             return null;
         }
         return sprintf('/uploads/media/%s/%s.%s', $this->type, $this->name, $this->extensionFile);
+    }
+
+    public function isArchived(): ?bool
+    {
+        return $this->archived;
+    }
+
+    public function setArchived(bool $archived): static
+    {
+        $this->archived = $archived;
+
+        return $this;
     }
 }

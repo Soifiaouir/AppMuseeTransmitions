@@ -7,10 +7,12 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use App\Repository\ColorRepository;
 use App\Validator\NoHtml;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use Doctrine\Common\Collections\Collection;
 
 /**
  * Entité en charge de gérer la liste des couleurs
@@ -40,6 +42,7 @@ class Color
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank(message: 'Le code de couleur est obligatoire')]
+    #[NoHtml]
     #[Assert\CssColor(
         formats: [
             Assert\CssColor::HEX_LONG,
@@ -51,7 +54,26 @@ class Color
     )]
     #[Groups(['theme:read', 'color:read', 'card:read'])]
     private ?string $colorCode = null;
+    /**
+     * @var Collection<int, Card>
+     * Cartes utilisant cette couleur pour le texte
+     */
+    #[ORM\OneToMany(targetEntity: Card::class, mappedBy: 'textColor')]
+    #[Groups(['color:read'])]
+    private Collection $cardsWithTextColor;
 
+    /**
+     * @var Collection<int, Card>
+     * Cartes utilisant cette couleur en fond
+     */
+    #[ORM\OneToMany(targetEntity: Card::class, mappedBy: 'backgroundColor')]
+    #[Groups(['color:read'])]
+    private Collection $cardsWithBackgroundColor;
+    public function __construct()
+    {
+        $this->cardsWithTextColor = new ArrayCollection();
+        $this->cardsWithBackgroundColor = new ArrayCollection();
+    }
     public function getId(): ?int
     {
         return $this->id;

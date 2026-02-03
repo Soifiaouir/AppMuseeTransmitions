@@ -68,18 +68,25 @@ class Card
     #[Groups(['card:read', 'theme:read'])]
     private Collection $moreInfos;
 
-    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    #[ORM\ManyToOne(targetEntity: Color::class)]
+    #[ORM\JoinColumn(name: "text_color_id", nullable: true)]  // ← ENLÈVE unique: true
     #[Groups(['card:read', 'theme:read'])]
     private ?Color $textColor = null;
 
-    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    #[ORM\ManyToOne(targetEntity: Color::class)]
+    #[ORM\JoinColumn(name: "background_color_id", nullable: true)]  // ← ENLÈVE OneToOne + unique: true
     #[Groups(['card:read', 'theme:read'])]
     private ?Color $backgroundColor = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $archived = null;
 
     public function __construct()
     {
         $this->medias = new ArrayCollection();
         $this->moreInfos = new ArrayCollection();
+        $this->archived = false;
+
     }
 
     public function getId(): ?int
@@ -224,6 +231,18 @@ class Card
     public function setBackgroundColor(?Color $backgroundColor): static  // ← CORRIGÉ : C majuscule
     {
         $this->backgroundColor = $backgroundColor;
+
+        return $this;
+    }
+
+    public function isArchived(): ?bool
+    {
+        return $this->archived;
+    }
+
+    public function setArchived(?bool $archived): static
+    {
+        $this->archived = $archived;
 
         return $this;
     }

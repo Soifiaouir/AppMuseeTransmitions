@@ -30,7 +30,7 @@ class MoreInfo
 
     #[ORM\Column(type: Types::TEXT)]
     #[NoHtml]
-    #[Groups(['card:read'])]
+    #[Groups(['card:read', 'theme:read'])]
     private ?string $details = null;
 
     public function getId(): ?int

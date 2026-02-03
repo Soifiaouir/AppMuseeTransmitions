@@ -1,88 +1,115 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ parent() }} | Détail de {{ media.userGivenName }}{% endblock %}
+{% block title %}Détail de {{ media.userGivenName }}{% endblock %}
 
 {% block body %}
-    <h2>{{ media.userGivenName }}</h2>
+    <div class="container">
+        <div class="card">
+            <h1>{{ media.userGivenName }}</h1>
 
-    <div class="media-details">
-        {# Aperçu du média #}
-        <div class="media-preview">
-            {% if media.type == 'image' %}
-                <img src="{{ asset('uploads/media/' ~ media.type ~ '/' ~ media.fullFileName) }}"
-                     alt="{{ media.userGivenName }}"
-                     style="max-width: 100%; height: auto;">
-            {% elseif media.type == 'video' %}
-                <video controls style="max-width: 100%;">
-                    <source src="{{ asset('uploads/media/' ~ media.type ~ '/' ~ media.fullFileName) }}"
-                            type="video/{{ media.extensionFile }}">
-                    Votre navigateur ne supporte pas la lecture de vidéos.
-                </video>
-            {% elseif media.type == 'audio' %}
-                <audio controls style="width: 100%;">
-                    <source src="{{ asset('uploads/media/' ~ media.type ~ '/' ~ media.fullFileName) }}"
-                            type="audio/{{ media.extensionFile }}">
-                    Votre navigateur ne supporte pas la lecture audio.
-                </audio>
-            {% endif %}
-        </div>
-
-        {# Informations du média #}
-        <div class="media-info">
-            <p><strong>Type :</strong> {{ media.type }}</p>
-            <p><strong>Extension :</strong> {{ media.extensionFile }}</p>
-            <p><strong>Taille :</strong>
-                {% if media.size %}
-                    {{ (media.size / 1024 / 1024)|number_format(2) }} MB
-                {% else %}
-                    N/A
+            {# Aperçu du média #}
+            <div class="theme-section">
+                {% if media.type == 'image' %}
+                    <div class="media-image-wrapper">
+                        <img src="{{ asset('uploads/media/' ~ media.type ~ '/' ~ media.fullFileName) }}"
+                             alt="{{ media.userGivenName }}"
+                             class="media-image-full">
+                    </div>
+                {% elseif media.type == 'video' %}
+                    <div class="media-image-wrapper">
+                        <video controls class="media-image-full">
+                            <source src="{{ asset('uploads/media/' ~ media.type ~ '/' ~ media.fullFileName) }}"
+                                    type="video/{{ media.extensionFile }}">
+                            Votre navigateur ne supporte pas la lecture de vidéos.
+                        </video>
+                    </div>
+                {% elseif media.type == 'audio' %}
+                    <div class="media-image-wrapper">
+                        <audio controls class="media-image-full">
+                            <source src="{{ asset('uploads/media/' ~ media.type ~ '/' ~ media.fullFileName) }}"
+                                    type="audio/{{ media.extensionFile }}">
+                            Votre navigateur ne supporte pas la lecture audio.
+                        </audio>
+                    </div>
                 {% endif %}
-            </p>
-            <p><strong>Date d'upload :</strong> {{ media.uploadedAt|date('d/m/Y à H:i:s') }}</p>
-            <p><strong>Nom du fichier :</strong> {{ media.fullFileName }}</p>
+            </div>
+
+            {# Informations du média #}
+            <div class="theme-section">
+                <div class="info-box">
+                    <h2>Informations</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Type :</strong> {{ media.type }}
+                        </div>
+                        <div class="info-item">
+                            <strong>Extension :</strong> {{ media.extensionFile }}
+                        </div>
+                        <div class="info-item">
+                            <strong>Taille :</strong>
+                            {% if media.size %}
+                                {{ (media.size / 1024 / 1024)|number_format(2) }} MB
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </div>
+                        <div class="info-item">
+                            <strong>Date d'upload :</strong> {{ media.uploadedAt|date('d/m/Y à H:i:s') }}
+                        </div>
+                        <div class="info-item">
+                            <strong>Nom du fichier :</strong> {{ media.fullFileName }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Cartes associées #}
+            {% if media.cards|length > 0 %}
+                <div class="theme-section">
+                    <h2>Cartes associées ({{ media.cards|length }})</h2>
+                    <div class="cards-list">
+                        {% for card in media.cards %}
+                            <div class="card-preview">
+                                <h3>
+                                    <a href="{{ path('cards_details', {'id': card.id}) }}">
+                                        {{ card.title }}
+                                    </a>
+                                </h3>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {# Thèmes associés #}
+            {% if media.themes|length > 0 %}
+                <div class="theme-section">
+                    <h2>Thèmes associés ({{ media.themes|length }})</h2>
+                    <div class="cards-list">
+                        {% for theme in media.themes %}
+                            <div class="card-preview">
+                                <h3>
+                                    <a href="{{ path('details_theme', {'id': theme.id}) }}">
+                                        {{ theme.name }}
+                                    </a>
+                                </h3>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <hr class="separator">
+
+            <div class="ligne">
+                <a href="{{ path('media_edit', {'id': media.id}) }}" class="buttonEdit">Modifier</a>
+                <a href="{{ path('media_remove', {'id': media.id}) }}"
+                   class="buttonRemove"
+                   onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce média ?');">
+                    Supprimer
+                </a>
+                <a href="{{ path('media_list') }}" class="buttonEdit">Retour à la liste</a>
+            </div>
         </div>
-
-        {# Cartes associées #}
-        {% if media.cards|length > 0 %}
-            <div class="associated-cards">
-                <h3>Cartes associées</h3>
-                <ul>
-                    {% for card in media.cards %}
-                        <li>
-                            <a href="{{ path('cards_details', {'id': card.id}) }}">
-                                {{ card.title }}
-                            </a>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-
-        {# Thèmes associés #}
-        {% if media.themes|length > 0 %}
-            <div class="associated-themes">
-                <h3>Thèmes associés</h3>
-                <ul>
-                    {% for theme in media.themes %}
-                        <li>
-                            <a href="{{ path('details_theme', {'id': theme.id}) }}">
-                                {{ theme.name }}
-                            </a>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-    </div>
-
-    <div class="actions">
-        <a href="{{ path('media_edit', {'id': media.id}) }}" class="buttonEdit">Modifier</a>
-        <a href="{{ path('media_remove', {'id': media.id}) }}"
-           class="buttonDelete"
-           onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce média ?');">
-            Supprimer
-        </a>
-        <a href="{{ path('media_list') }}" class="buttonBack">Retour à la liste</a>
     </div>
 {% endblock %}
-

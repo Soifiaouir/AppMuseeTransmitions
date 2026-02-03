@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
@@ -22,10 +24,13 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
     ],
     normalizationContext: ['groups' => ['theme:read']],
     paginationEnabled: true,
-    paginationItemsPerPage: 30
+    paginationItemsPerPage: 10
 )]
+#[ApiFilter(BooleanFilter::class, properties: ['archived'])]
 class Theme
 {
+    public const THEME_PER_PAGE =10;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -67,7 +72,7 @@ class Theme
     #[ORM\ManyToOne(inversedBy: 'themes')]
     private ?User $createdBy = null;
 
-    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    #[ORM\ManyToOne(inversedBy: 'colors')]
     private ?Color $themeBackgroundColor = null;
 
     public function __construct()

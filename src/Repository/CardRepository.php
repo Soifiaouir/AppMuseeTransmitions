@@ -17,15 +17,38 @@ class CardRepository extends ServiceEntityRepository
         parent::__construct($registry, Card::class);
     }
 
-    public function getCardByThemeWithPagination(int $page): Paginator
+    /**
+     * @return \Doctrine\ORM\QueryBuilder
+     */
+    public function getBuilder(): \Doctrine\ORM\QueryBuilder
     {
-        $dql = " select c from App\Entity\Card as c
-                 LEFT JOIN c.theme as theme
-                 ORDER BY c.theme.dateOfCreation DESC";
+        $dql = "SELECT c, t, m, media, tc, bc FROM App\Entity\Card c
+                LEFT JOIN c.theme AS t
+                LEFT JOIN c.moreInfos AS m
+                LEFT JOIN m.media AS media
+                LEFT JOIN m.textColor AS tc
+                LEFT JOIN m.backgroundColor AS bc";
 
         $qb = $this->createQueryBuilder('c');
         $qb->leftJoin('c.theme', 't');
         $qb->addSelect('t');
+        $qb->leftJoin('c.moreInfos', 'm');
+        $qb->addSelect('m');
+        $qb->leftJoin('c.medias', 'media');
+        $qb->addSelect('media');
+        $qb->leftJoin('c.textColor', 'tc');
+        $qb->addSelect('tc');
+        $qb->leftJoin('c.backgroundColor', 'bc');
+        $qb->addSelect('bc');
+        return $qb;
+    }
+    public function getCardByThemeWithPagination(int $page): Paginator
+    {
+        $dql = " SELECT c FROM App\Entity\Card AS c
+                 LEFT JOIN c.theme AS t
+                 ORDER BY c.theme.dateOfCreation DESC";
+
+        $qb = $this->getBuilder();
         $qb->orderBy('t.dateOfCreation', 'DESC');
 
         $query = $qb->getQuery();
@@ -37,28 +60,18 @@ class CardRepository extends ServiceEntityRepository
         $paginator = new Paginator($query);
         return $paginator;
     }
-    //    /**
-    //     * @return Card[] Returns an array of Card objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('c')
-    //            ->andWhere('c.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('c.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
 
-    //    public function findOneBySomeField($value): ?Card
-    //    {
-    //        return $this->createQueryBuilder('c')
-    //            ->andWhere('c.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+
+    public function findOneWithRelations(int $id): ?Card
+    {
+        $dql = "SELECT c FROM App\Entity\Card c
+            LEFT JOIN c.theme t
+            WHERE c.id = :id";
+
+        $qb = $this->getBuilder();
+        $qb->where('c.id = :id');
+        $qb->setParameter('id', $id);
+
+        return $qb->getQuery()->getOneOrNullResult();
+    }
 }

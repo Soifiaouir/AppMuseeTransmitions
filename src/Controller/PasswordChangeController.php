@@ -9,20 +9,20 @@ use App\Form\ResetPasswordAskType;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+
 class PasswordChangeController extends AbstractController
 {
-    public function __construct(private readonly UserPasswordHasherInterface $passwordHasher,
-                                private readonly EntityManagerInterface      $em,
-                                private readonly UserRepository              $userRepository,
+    public function __construct(
+        private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly EntityManagerInterface      $em,
+        private readonly UserRepository              $userRepository,
     )
     {
-
     }
 
     #[IsGranted('ROLE_USER')]
@@ -46,6 +46,9 @@ class PasswordChangeController extends AbstractController
             $user->setPassword($hashedPassword);
             $user->setPasswordChange(false);
             $user->setPasswordChangeDate(new \DateTime());
+
+            // IMPORTANT : Effacer le mot de passe temporaire après la première connexion réussie
+            $user->setTempPassword(null);
 
             $this->em->flush();
 
@@ -71,17 +74,18 @@ class PasswordChangeController extends AbstractController
             $user = $this->userRepository->findOneBy(['username' => $username]);
 
             if($user) {
-                //pour forcer le changement de mot de passe
+                // Pour forcer le changement de mot de passe
                 $user->setPasswordChange(true);
                 $this->em->flush();
 
-                $this->addFlash('success', 'Votre demande a bien été enregistrée. Un administrateur vous communiquera un nouveau mot de passe temporaire. ');
+                $this->addFlash('success', 'Votre demande a bien été enregistrée. Un administrateur vous communiquera un nouveau mot de passe temporaire.');
             } else {
-                //pour sécurité meme message
-                $this->addFlash('success', 'Votre demande a bien été enregistrée. Un administrateur vous communiquera un nouveau mot de passe temporaire. ');
+                // Pour sécurité même message
+                $this->addFlash('success', 'Votre demande a bien été enregistrée. Un administrateur vous communiquera un nouveau mot de passe temporaire.');
             }
             return $this->redirectToRoute('app_login');
         }
+
         return $this->render('security/forgot_password.html.twig', [
             'formResetAsk' => $formResetAsk,
         ]);

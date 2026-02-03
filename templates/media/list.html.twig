@@ -1,9 +1,10 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ parent() }} | Liste des médias{% endblock %}
+{% block title %}Liste des médias{% endblock %}
 
 {% block body %}
     <h2>Gestion des médias du musée</h2>
+    <a href="{{ path('media_add') }}" class="buttonCreate">Ajouter un média</a>
 
     {% if medias|length == 0 %}
         <p>Pas de média dans la base de données</p>
@@ -59,6 +60,23 @@
             {% endfor %}
             </tbody>
         </table>
+
+        {% if maxPages > 1 %}
+
+            {# Page précédente #}
+            {% if currentPage > 1 %}
+                <a href="{{ path('media_list', {'page': currentPage - 1}) }}"  class="buttonEdit">
+                    « Précédent
+                </a>
+            {% endif %}
+
+            {# Page suivante #}
+            {% if currentPage < maxPages %}
+                <a href="{{ path('media_list', {'page': currentPage + 1}) }}" class="buttonEdit">
+                    Suivant »
+                </a>
+            {% endif %}
+
+        {% endif %}
     {% endif %}
-    <a href="{{ path('media_add') }}" class="buttonCreate">Ajouter un média</a>
 {% endblock %}

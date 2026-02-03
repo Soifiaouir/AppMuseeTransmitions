@@ -1,71 +1,58 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}
-     Liste des cartes
-{% endblock %}
+{% block title %}Liste des cartes{% endblock %}
 
 {% block body %}
-    <div class="container">
-        <section>
-            <h2>Liste des cartes</h2>
+    <h2>Liste des cartes</h2>
+    <p>Gérez toutes vos cartes</p>
 
+    <a href="{{ path('cards_add') }}" class="buttonCreate">Ajouter une carte</a>
+
+    {% if cards|length == 0 %}
+        <div class="card">
+            <p>Aucune carte disponible dans la base de données pour le moment.</p>
+            <p>Commencez par créer votre première carte !</p>
+        </div>
+    {% else %}
+        <div class="cards-list">
+            {% for card in cards %}
+                <article class="card-preview">
+                    <h3>
+                        <a href="{{ path('cards_details', {'id': card.id}) }}">
+                            {{ card.title }}
+                        </a>
+                    </h3>
+                    <div class="theme">{{ card.theme.name }}</div>
+                    <div class="actions">
+                        <a href="{{ path('cards_details', {'id': card.id}) }}" class="btn buttonEdit">Voir</a>
+                        <a href="{{ path('cards_edit', {'id': card.id}) }}" class="btn buttonEdit">Modifier</a>
+                        <a href="{{ path('cards_delete', {'id': card.id}) }}"
+                           class="btn buttonRemove"
+                           onclick="return confirm('Confirmer la suppression de « {{ card.title }} » ?')">
+                            Supprimer
+                        </a>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+
+        {# Pagination #}
+        {% if maxPages > 1 %}
             <div class="ligne">
-                <a href="{{ path('cards_add') }}">
-                    <button class="buttonCreate">Ajouter une carte</button>
-                </a>
-            </div>
-
-            {% if cards|length == 0 %}
-                <div class="card">
-                    <p class="text-center">Pas de cartes dans la base de données</p>
-                </div>
-            {% else %}
-                <div class="cards-list">
-                    {% for card in cards %}
-                        <article class="card-preview">
-                            <h3>
-                                <a href="{{ path('cards_details', {'id': card.id}) }}">
-                                    {{ card.title }}
-                                </a>
-                            </h3>
-                            <div class="theme">{{ card.theme.name }}</div>
-                            <div class="actions">
-                                <a href="{{ path('cards_details', {'id': card.id}) }}" class="btn">Voir</a>
-                                <a href="{{ path('cards_edit', {'id': card.id}) }}" class="btn buttonEdit">Modifier</a>
-                                <a href="{{ path('cards_delete', {'id': card.id}) }}"
-                                   class="btn buttonRemove"
-                                   onclick="return confirm('Confirmer la suppression de « {{ card.title }} » ?')">
-                                    Supprimer
-                                </a>
-                            </div>
-                        </article>
-                    {% endfor %}
-                </div>
-
-                {# Pagination #}
-                {% if maxPages > 1 %}
-
-                    {# Page précédente #}
-                    {% if currentPage > 1 %}
-                        <a href="{{ path('cards_list', {'page': currentPage - 1}) }}"  class="buttonEdit">
-                            « Précédent
-                        </a>
-                    {% endif %}
-
-                    {# Page suivante #}
-                    {% if currentPage < maxPages %}
-                        <a href="{{ path('cards_list', {'page': currentPage + 1}) }}" class="buttonEdit">
-                            Suivant »
-                        </a>
-                    {% endif %}
-
+                {# Page précédente #}
+                {% if currentPage > 1 %}
+                    <a href="{{ path('cards_list', {'page': currentPage - 1}) }}" class="buttonEdit">
+                        Précédent
+                    </a>
                 {% endif %}
-            {% endif %}
-        </section>
-    </div>
-{% endblock %}
 
-{% block stylesheets %}
-    {{ parent() }}
-    {# Tes styles CSS sont déjà globaux #}
+                {# Page suivante #}
+                {% if currentPage < maxPages %}
+                    <a href="{{ path('cards_list', {'page': currentPage + 1}) }}" class="buttonEdit">
+                        Suivant
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% endif %}
 {% endblock %}

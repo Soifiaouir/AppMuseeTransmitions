@@ -11,12 +11,14 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
  * Controleur en charge de gerer le lien entre la base de donnée et les vues lié à l'entité color
  *Le but est de renforcé le theme en y ajoutant de couleurs qui porron ensuite etre utiliser par le musée lors de la créations de differents
  *pages liés aux expositions en proposant une thématique complete.
  */
+#[IsGranted('ROLE_ADMIN')]
 #[Route('/color', name: 'color_')]
 final class ColorController extends AbstractController
 {
@@ -54,7 +56,7 @@ final class ColorController extends AbstractController
     public function edit(Request $request, int $id): Response
     {
         $color = $this->colorRepository->find($id);
-        $formColor = $this->createForm(type: Color::class);
+        $formColor = $this->createForm(ColorType::class, $color);
         $formColor->handleRequest($request);
 
         if ($formColor->isSubmitted() && $formColor->isValid()) {
