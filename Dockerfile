@@ -41,8 +41,20 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
         gd \
         opcache
 
-# Copier la configuration PHP personnalisée
-COPY docker/php/custom.ini /usr/local/etc/php/conf.d/custom.ini
+# Configuration PHP pour gros fichiers
+RUN echo "memory_limit=512M" > /usr/local/etc/php/conf.d/custom.ini \
+    && echo "upload_max_filesize=500M" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "post_max_size=500M" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "max_input_time=300" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "date.timezone=Europe/Paris" >> /usr/local/etc/php/conf.d/custom.ini
+
+# Configuration OPcache pour production
+RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.interned_strings_buffer=16" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.max_accelerated_files=20000" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
 
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -102,8 +114,9 @@ RUN composer install \
 # Copier tout le code Symfony
 COPY . /var/www/html
 
-# Copier le fichier .env.docker et le renommer en .env.local
-COPY .env.docker /var/www/html/.env.local
+#  IMPORTANT : Copier le fichier .env.prod.example comme template
+# Les vraies valeurs seront injectées via les variables d'environnement du container
+COPY .env.prod. /var/www/html/.env.local
 
 # Finaliser l'installation Composer
 RUN composer dump-autoload --optimize --no-dev --classmap-authoritative
@@ -121,22 +134,22 @@ RUN mkdir -p var/cache var/log var/sessions public/uploads \
 
 # Cloner le repo React
 RUN if [ -n "$REACT_REPO_URL" ]; then \
-        echo "📦 Clonage du repo React : $REACT_REPO_URL"; \
+        echo " Clonage du repo React : $REACT_REPO_URL"; \
         git clone --branch ${REACT_BRANCH} --depth 1 ${REACT_REPO_URL} /tmp/react-app; \
         cd /tmp/react-app; \
-        echo "📦 Installation des dépendances npm..."; \
+        echo " Installation des dépendances npm..."; \
         npm install; \
-        echo "🔨 Build de React..."; \
+        echo " Build de React..."; \
         npm run build; \
-        echo "📁 Copie du build React..."; \
+        echo "Copie du build React..."; \
         mkdir -p /var/www/react; \
         cp -r dist /var/www/react/; \
-        echo "🧹 Nettoyage..."; \
+        echo "Nettoyage..."; \
         cd /; \
         rm -rf /tmp/react-app; \
-        echo "✅ React buildé avec succès !"; \
+        echo " React buildé avec succès !"; \
     else \
-        echo "⚠️  REACT_REPO_URL non défini - Skip du build React"; \
+        echo " REACT_REPO_URL non défini - Skip du build React"; \
         mkdir -p /var/www/react/dist; \
         echo "<h1>React non configuré</h1>" > /var/www/react/dist/index.html; \
     fi

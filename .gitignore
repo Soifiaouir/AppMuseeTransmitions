@@ -1,8 +1,5 @@
-
 ###> symfony/framework-bundle ###
 /.env.local
-/.env.prod.local
-/.env.prod
 /.env.local.php
 /.env.*.local
 /config/secrets/prod/prod.decrypt.private.php
@@ -13,17 +10,37 @@
 
 ###> phpunit/phpunit ###
 /phpunit.xml
-/.phpunit.cache/
+.phpunit.result.cache
 ###< phpunit/phpunit ###
 
-###> symfony/asset-mapper ###
-/public/assets/
-/assets/vendor/
-###< symfony/asset-mapper ###
-###/upload###
-/public/uploads
-###/upload###
-###> lexik/jwt-authentication-bundle ###
-/config/jwt/*.pem
-###< lexik/jwt-authentication-bundle ###
-###> lexik/jwt-authentication-bundle ###
+###> symfony/phpunit-bridge ###
+.phpunit
+.phpunit.result.cache
+/phpunit.xml
+###< symfony/phpunit-bridge ###
+
+###> Docker et secrets ###
+#  NE JAMAIS COMMITER CES FICHIERS AVEC DES VRAIS MOTS DE PASSE
+.env
+.env.local
+.env.prod
+.env.docker
+# Le fichier avec les vraies valeurs pour le NUC
+.env.nuc
+
+# Logs Docker
+logs/
+*.log
+
+# Fichiers de sauvegarde Docker
+*.tar
+###< Docker et secrets ###
+
+###> IDE ###
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+###< IDE ###
