@@ -22,9 +22,10 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
     mysql_install_db --user=mysql --datadir=/var/lib/mysql --skip-test-db
 fi
 
-# Démarrer MariaDB en arrière-plan
-echo "   -> Demarrage du daemon MariaDB..."
-mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking=0 &
+# Démarrer MariaDB en arrière-plan SANS authentification pour la config initiale
+echo "   -> Demarrage du daemon MariaDB en mode bootstrap..."
+mysqld --user=mysql --datadir=/var/lib/mysql --skip-grant-tables &
+MARIADB_PID=$!
 
 # ============================================
 # 2. ATTENDRE QUE MARIADB SOIT PRETE
@@ -55,23 +56,57 @@ while ! mysqladmin ping -h localhost --silent 2>/dev/null; do
 done
 
 echo "   -> MariaDB repond au ping !"
+sleep 2
 
 # ============================================
-# 3. CREER LA BASE DE DONNEES
+# 3. CONFIGURER LE MOT DE PASSE ROOT
 # ============================================
 echo ""
-echo "3/7 - Creation de la base de donnees..."
+echo "3/7 - Configuration du mot de passe root..."
 
-# D'abord, créer l'utilisateur root avec mot de passe
-mysql -h localhost -u root << EOF
+# Connexion SANS mot de passe (mode --skip-grant-tables)
+mysql -h localhost << EOF
+FLUSH PRIVILEGES;
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
-ALTER USER 'root'@'%' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
+CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 EOF
 
 echo "   -> Mot de passe root configure !"
 
-# Ensuite, créer la base de données AVEC le mot de passe
+# Redémarrer MariaDB en mode normal (avec authentification)
+echo "   -> Redemarrage de MariaDB en mode normal..."
+kill $MARIADB_PID
+wait $MARIADB_PID 2>/dev/null || true
+sleep 2
+
+# Redémarrer MariaDB normalement
+mysqld --user=mysql --datadir=/var/lib/mysql &
+MARIADB_PID=$!
+
+# Attendre que MariaDB redémarre
+COUNT=0
+while ! mysqladmin ping -h localhost --silent 2>/dev/null; do
+    COUNT=$((COUNT + 1))
+    if [ $COUNT -gt 30 ]; then
+        echo "ERREUR : MariaDB n'a pas redemarre"
+        exit 1
+    fi
+    echo "   -> Attente redemarrage MariaDB ($COUNT/30)..."
+    sleep 1
+done
+
+echo "   -> MariaDB redemarre !"
+sleep 3
+
+# ============================================
+# 4. CREER LA BASE DE DONNEES
+# ============================================
+echo ""
+echo "4/7 - Creation de la base de donnees..."
+
 mysql -h localhost -u root -p${DB_ROOT_PASSWORD} << EOF
 CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'localhost';
@@ -80,13 +115,13 @@ FLUSH PRIVILEGES;
 EOF
 
 echo "   -> Base de donnees '${DB_NAME}' creee !"
-sleep 3
+sleep 2
 
 # ============================================
-# 4. VERIFIER LA CONNEXION SYMFONY
+# 5. VERIFIER LA CONNEXION SYMFONY
 # ============================================
 echo ""
-echo "4/7 - Test de connexion Symfony..."
+echo "5/7 - Test de connexion Symfony..."
 
 cd /var/www/html
 
@@ -110,20 +145,20 @@ while [ $COUNT -lt $MAX_TRIES ]; do
 done
 
 # ============================================
-# 5. LANCER LES MIGRATIONS DOCTRINE
+# 6. LANCER LES MIGRATIONS DOCTRINE
 # ============================================
 echo ""
-echo "5/7 - Execution des migrations Doctrine..."
+echo "6/7 - Execution des migrations Doctrine..."
 
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 
 echo "   -> Migrations executees !"
 
 # ============================================
-# 6. CHARGER LES FIXTURES (SI NECESSAIRE)
+# 7. CHARGER LES FIXTURES (SI NECESSAIRE)
 # ============================================
 echo ""
-echo "6/7 - Verification des fixtures..."
+echo "7/7 - Verification des fixtures..."
 
 USER_COUNT=$(mysql -h localhost -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -sNe "SELECT COUNT(*) FROM user;" 2>/dev/null || echo "0")
 
@@ -136,10 +171,10 @@ else
 fi
 
 # ============================================
-# 7. DEMARRER APACHE
+# 8. DEMARRER APACHE
 # ============================================
 echo ""
-echo "7/7 - Demarrage d'Apache..."
+echo "8/8 - Demarrage d'Apache..."
 echo ""
 echo "================================================"
 echo " Application prete !"
