@@ -22,7 +22,7 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
     mysql_install_db --user=mysql --datadir=/var/lib/mysql --skip-test-db
 fi
 
-# Démarrer MariaDB en arrière-plan avec options de débogage
+# Démarrer MariaDB en arrière-plan
 echo "   -> Demarrage du daemon MariaDB..."
 mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking=0 &
 
@@ -42,14 +42,12 @@ while [ ! -S /var/run/mysqld/mysqld.sock ] && [ $COUNT -lt $MAX_TRIES ]; do
     sleep 1
 done
 
-# Attendre que MariaDB accepte les connexions
+# Attendre que MariaDB accepte les connexions (ping)
 COUNT=0
 while ! mysqladmin ping -h localhost --silent 2>/dev/null; do
     COUNT=$((COUNT + 1))
     if [ $COUNT -gt $MAX_TRIES ]; then
         echo "ERREUR : MariaDB n'a pas demarre apres $MAX_TRIES secondes"
-        echo "Logs MariaDB :"
-        tail -50 /var/log/mysql/error.log 2>/dev/null || journalctl -u mysql -n 50 2>/dev/null || echo "Pas de logs disponibles"
         exit 1
     fi
     echo "   -> Tentative ping $COUNT/$MAX_TRIES..."
@@ -58,32 +56,26 @@ done
 
 echo "   -> MariaDB repond au ping !"
 
-# Test de connexion réelle
-COUNT=0
-while ! mysql -h localhost -u root -e "SELECT 1" >/dev/null 2>&1; do
-    COUNT=$((COUNT + 1))
-    if [ $COUNT -gt 30 ]; then
-        echo "ERREUR : Impossible de se connecter a MariaDB"
-        exit 1
-    fi
-    echo "   -> Tentative connexion $COUNT/30..."
-    sleep 2
-done
-
-echo "   -> MariaDB accepte les connexions !"
-echo "   -> Attente supplementaire de 5 secondes..."
-sleep 5
-
 # ============================================
 # 3. CREER LA BASE DE DONNEES
 # ============================================
 echo ""
 echo "3/7 - Creation de la base de donnees..."
 
+# D'abord, créer l'utilisateur root avec mot de passe
 mysql -h localhost -u root << EOF
+ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
+ALTER USER 'root'@'%' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
+FLUSH PRIVILEGES;
+EOF
+
+echo "   -> Mot de passe root configure !"
+
+# Ensuite, créer la base de données AVEC le mot de passe
+mysql -h localhost -u root -p${DB_ROOT_PASSWORD} << EOF
 CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
-GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'%' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'localhost';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'%';
 FLUSH PRIVILEGES;
 EOF
 
