@@ -57,8 +57,7 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
 
 # Installer Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
+COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 # ============================================
 # PARTIE 4 : CONFIGURATION APACHE
 # ============================================
