@@ -28,7 +28,7 @@ mysqld_safe --user=mysql &
 # 2. ATTENDRE QUE MARIADB SOIT PRETE
 # ============================================
 echo ""
-echo "2/6 - Attente de MariaDB..."
+echo "2/6 - Attente de MariaDB (ping)..."
 
 MAX_TRIES=30
 COUNT=0
@@ -43,7 +43,31 @@ while ! mysqladmin ping --silent; do
     sleep 1
 done
 
-echo "MariaDB est prete !"
+echo "MariaDB repond au ping !"
+
+# ============================================
+# 2.5 ATTENDRE QUE MARIADB ACCEPTE LES CONNEXIONS
+# ============================================
+echo ""
+echo "2.5/6 - Attente que MariaDB accepte les connexions..."
+
+COUNT=0
+MAX_TRIES=30
+
+while ! mysql -u root -e "SELECT 1" &>/dev/null; do
+    COUNT=$((COUNT + 1))
+    if [ $COUNT -gt $MAX_TRIES ]; then
+        echo "Erreur : MariaDB n'accepte pas les connexions apres 30 secondes"
+        exit 1
+    fi
+    echo "   -> Tentative $COUNT/$MAX_TRIES..."
+    sleep 1
+done
+
+echo "MariaDB accepte les connexions !"
+
+# Attendre encore 3 secondes pour etre vraiment sur
+sleep 3
 
 # ============================================
 # 3. CREER LA BASE DE DONNEES
@@ -60,6 +84,9 @@ EOF
 
 echo "Base de donnees creee !"
 
+# Attendre encore 2 secondes apres la creation de la BDD
+sleep 2
+
 # ============================================
 # 4. LANCER LES MIGRATIONS DOCTRINE
 # ============================================
@@ -68,10 +95,12 @@ echo "4/6 - Execution des migrations Doctrine..."
 
 cd /var/www/html
 
-# Attendre un peu pour etre sur que la BDD est accessible
-sleep 2
+# Tester la connexion Symfony avant de lancer les migrations
+echo "   -> Test de connexion Symfony..."
+php bin/console doctrine:database:drop --force --if-exists --no-interaction || true
+php bin/console doctrine:database:create --no-interaction
 
-# Lancer les migrations
+echo "   -> Lancement des migrations..."
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 
 echo "Migrations executees !"
@@ -100,7 +129,7 @@ echo ""
 echo "6/6 - Demarrage d'Apache..."
 echo ""
 echo "================================================"
-echo "Application prête !"
+echo "Application prete !"
 echo "================================================"
 echo "React : http://localhost"
 echo "API Symfony : http://localhost:8080/api"
