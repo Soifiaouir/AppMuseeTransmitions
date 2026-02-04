@@ -16,7 +16,7 @@ export APP_SECRET=${APP_SECRET:-change-me-in-production}
 export JWT_PASSPHRASE=${JWT_PASSPHRASE:-change-me-too}
 
 # Remplacer les placeholders dans .env.docker
-echo "0/6 - Configuration des variables d'environnement..."
+echo "0/7 - Configuration des variables d'environnement..."
 sed -e "s|__DB_NAME__|${DB_NAME}|g" \
     -e "s|__DB_ROOT_PASSWORD__|${DB_ROOT_PASSWORD}|g" \
     -e "s|__APP_SECRET__|${APP_SECRET}|g" \
@@ -29,7 +29,7 @@ echo "   -> Variables configurees !"
 # 1. DEMARRER MARIADB
 # ============================================
 echo ""
-echo "1/6 - Demarrage de MariaDB..."
+echo "1/7 - Demarrage de MariaDB..."
 
 # Créer les dossiers
 mkdir -p /var/lib/mysql /var/run/mysqld
@@ -71,7 +71,7 @@ sleep 2
 # 2. CONFIGURER LA BASE DE DONNEES
 # ============================================
 echo ""
-echo "2/6 - Configuration de la base de donnees..."
+echo "2/7 - Configuration de la base de donnees..."
 
 mysql --socket=/var/run/mysqld/mysqld.sock << EOF
 -- Configurer le mot de passe root
@@ -103,7 +103,7 @@ sleep 3
 # 3. DEMARRER MARIADB EN MODE NORMAL
 # ============================================
 echo ""
-echo "3/6 - Demarrage de MariaDB en mode production..."
+echo "3/7 - Demarrage de MariaDB en mode production..."
 
 # Démarrer MariaDB en mode normal
 mysqld_safe --user=mysql &
@@ -129,7 +129,7 @@ sleep 3
 # 4. VERIFIER LA CONNEXION SYMFONY
 # ============================================
 echo ""
-echo "4/6 - Test de connexion Symfony..."
+echo "4/7 - Test de connexion Symfony..."
 
 cd /var/www/html
 
@@ -142,11 +142,9 @@ for i in $(seq 1 $MAX_RETRY); do
     fi
     if [ $i -eq $MAX_RETRY ]; then
         echo "ERREUR : Symfony ne peut pas se connecter a MariaDB"
-        echo "Contenu de DATABASE_URL :"
-        grep DATABASE_URL /var/www/html/.env.local || true
         exit 1
     fi
-    echo "   -> Tentative $i/$MAX_RETRY echouee, nouvelle tentative..."
+    echo "   -> Tentative $i/$MAX_RETRY echouee..."
     sleep 3
 done
 
@@ -154,30 +152,52 @@ done
 # 5. LANCER LES MIGRATIONS DOCTRINE
 # ============================================
 echo ""
-echo "5/6 - Execution des migrations Doctrine..."
+echo "5/7 - Execution des migrations Doctrine..."
 
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1 | grep -v -i "deprecated\|user deprecated" || true
 
 echo "   -> Migrations terminees !"
 
 # ============================================
-# 6. CHARGER LES FIXTURES (SI NECESSAIRE)
+# 6. CREER L'UTILISATEUR ADMIN
 # ============================================
 echo ""
-echo "6/6 - Verification des fixtures..."
+echo "6/7 - Creation de l'utilisateur admin..."
 
-USER_COUNT=$(mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -sNe "SELECT COUNT(*) FROM user;" 2>/dev/null || echo "0")
+# Vérifier si l'admin existe déjà
+ADMIN_EXISTS=$(mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -sNe "SELECT COUNT(*) FROM user WHERE username='admin';" 2>/dev/null || echo "0")
 
-if [ "$USER_COUNT" -eq "0" ]; then
-    echo "   -> Chargement des fixtures..."
-    php bin/console doctrine:fixtures:load --no-interaction 2>&1 | grep -v -i "deprecated\|user deprecated" || true
-    echo "   -> Fixtures chargees !"
+if [ "$ADMIN_EXISTS" -eq "0" ]; then
+    echo "   -> Creation de l'utilisateur admin..."
+
+    # Générer le hash du mot de passe "admin" avec Symfony
+    ADMIN_PASSWORD_HASH=$(php bin/console security:hash-password admin --quiet | tail -1 | awk '{print $NF}')
+
+    # Insérer l'admin en base
+    mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} << EOF
+INSERT INTO user (username, password, roles, password_change, password_change_date)
+VALUES ('admin', '${ADMIN_PASSWORD_HASH}', '["ROLE_ADMIN"]', 0, NOW());
+EOF
+
+    echo "   -> Utilisateur admin cree (username: admin, password: admin)"
 else
-    echo "   -> ${USER_COUNT} utilisateurs deja presents"
+    echo "   -> Utilisateur admin deja present"
 fi
 
 # ============================================
-# 7. DEMARRER APACHE
+# 7. CORRIGER LES PERMISSIONS
+# ============================================
+echo ""
+echo "7/7 - Correction des permissions..."
+
+# S'assurer que www-data possède tout
+chown -R www-data:www-data /var/www/html/var
+chmod -R 775 /var/www/html/var
+
+echo "   -> Permissions corrigees !"
+
+# ============================================
+# 8. DEMARRER APACHE
 # ============================================
 echo ""
 echo "================================================"
@@ -186,6 +206,8 @@ echo "================================================"
 echo ""
 echo " Front React  : http://localhost"
 echo " API Symfony  : http://localhost:8080"
+echo ""
+echo " Utilisateur admin : admin / admin"
 echo ""
 echo "================================================"
 echo ""

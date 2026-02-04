@@ -103,7 +103,7 @@ WORKDIR /var/www/html
 # Copier les fichiers de dépendances d'abord (cache Docker)
 COPY composer.json composer.lock symfony.lock ./
 
-# Installer les dépendances Composer (sans autoload pour le moment)
+# IMPORTANT : Installer AVEC --dev pour avoir les fixtures
 RUN composer install \
     --optimize-autoloader \
     --no-scripts \
@@ -112,19 +112,23 @@ RUN composer install \
 # Copier tout le code Symfony
 COPY . /var/www/html
 
-#  IMPORTANT : Copier le fichier .env.prod.example comme template
-# Les vraies valeurs seront injectées via les variables d'environnement du container
-COPY .env.prod.example /var/www/html/.env.local
+# Copier le fichier .env.docker (sera transformé en .env.local par entrypoint.sh)
+COPY .env.docker /var/www/html/.env.docker
 
 # Finaliser l'installation Composer
-RUN composer dump-autoload --optimize --no-dev --classmap-authoritative
+RUN composer dump-autoload --optimize --classmap-authoritative
 
 # Créer les dossiers Symfony et configurer les permissions
 RUN mkdir -p var/cache var/log var/sessions public/uploads \
-    && chown -R www-data:www-data /var/www/html/var \
-    && chown -R www-data:www-data /var/www/html/public/uploads \
+    && chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/var \
-    && chmod -R 775 /var/www/html/public/uploads
+    && chmod -R 775 /var/www/html/public
+
+# CRITIQUE : Warm up du cache en mode prod AVEC les bonnes permissions
+RUN php bin/console cache:clear --env=prod --no-warmup || true \
+    && php bin/console cache:warmup --env=prod || true \
+    && chown -R www-data:www-data /var/www/html/var \
+    && chmod -R 775 /var/www/html/var
 
 # ============================================
 # PARTIE 7 : BUILD DU REACT
