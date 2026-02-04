@@ -1,0 +1,81 @@
+name: Build, Push & Test Docker
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout du repo BACK
+        uses: actions/checkout@v4
+      
+      - name: Login Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      
+      - name: Build de l'image Docker avec React
+        run: |
+          docker build \
+            --build-arg REACT_REPO_URL="https://github.com/Soifiaouir/AppMuseeTransmitionsReact.git" \
+            --build-arg REACT_BRANCH=master \
+            -t ${{ secrets.DOCKER_REPOSITORY }}:latest \
+            .
+      
+      - name: Push de l'image sur Docker Hub
+        run: |
+          docker push ${{ secrets.DOCKER_REPOSITORY }}:latest
+      
+      - name: Confirmation de publication
+        run: |
+          echo "================================================"
+          echo "Image Docker publiee avec succes !"
+          echo "Repository: ${{ secrets.DOCKER_REPOSITORY }}"
+          echo "Tag: latest"
+          echo "================================================"
+
+  tests:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mariadb-admin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+    
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+      
+      - name: Login Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      
+      - name: Pull de l'image Docker
+        run: |
+          docker pull ${{ secrets.DOCKER_REPOSITORY }}:latest
+      
+      - name: Execution des tests PHPUnit
+        env:
+          IMAGE: ${{ secrets.DOCKER_REPOSITORY }}:latest
+        run: |
+          docker run --rm \
+            -v $(pwd):/app \
+            -w /app \
+            --network=host \
+            -e DATABASE_URL="mysql://root:root@127.0.0.1:3306/test?serverVersion=mariadb-11.8.5&charset=utf8mb4" \
+            $IMAGE \
+            sh -c "
+              git config --global --add safe.directory /app &&
+              composer install --no-interaction --prefer-dist --optimize-autoloader &&
+              php bin/console doctrine:database:create --env=test --no-interaction --if-not-exists &&
+              php bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration &&
+              vendor/bin/phpunit --colors=always
+            "
