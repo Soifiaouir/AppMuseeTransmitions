@@ -12,142 +12,146 @@ echo ""
 echo "1/7 - Demarrage de MariaDB..."
 
 # Créer le dossier de données si nécessaire
-mkdir -p /var/lib/mysql
-chown -R mysql:mysql /var/lib/mysql
+mkdir -p /var/lib/mysql /var/run/mysqld
+chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
+chmod 777 /var/run/mysqld
 
 # Initialiser MariaDB si première fois
 if [ ! -d "/var/lib/mysql/mysql" ]; then
-    echo "   -> Initialisation de MariaDB (première fois)..."
-    mysql_install_db --user=mysql --datadir=/var/lib/mysql
+    echo "   -> Initialisation de MariaDB (premiere fois)..."
+    mysql_install_db --user=mysql --datadir=/var/lib/mysql --skip-test-db
 fi
 
-# Démarrer MariaDB en arrière-plan
-mysqld_safe --user=mysql &
-MARIADB_PID=$!
+# Démarrer MariaDB en arrière-plan avec options de débogage
+echo "   -> Demarrage du daemon MariaDB..."
+mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking=0 &
 
 # ============================================
-# 2. ATTENDRE QUE MARIADB RÉPONDE AU PING
+# 2. ATTENDRE QUE MARIADB SOIT PRETE
 # ============================================
 echo ""
-echo "2/7 - Attente de MariaDB (ping)..."
+echo "2/7 - Attente de MariaDB..."
 
-MAX_TRIES=30
+MAX_TRIES=60
 COUNT=0
 
-while ! mysqladmin ping --silent 2>/dev/null; do
+# Attendre que le socket soit créé
+while [ ! -S /var/run/mysqld/mysqld.sock ] && [ $COUNT -lt $MAX_TRIES ]; do
     COUNT=$((COUNT + 1))
-    if [ $COUNT -gt $MAX_TRIES ]; then
-        echo "ERREUR : MariaDB n'a pas démarré après 30 secondes"
-        exit 1
-    fi
-    echo "   -> Tentative $COUNT/$MAX_TRIES..."
+    echo "   -> Attente du socket MySQL ($COUNT/$MAX_TRIES)..."
     sleep 1
 done
 
-echo "   -> MariaDB répond au ping !"
-
-# ============================================
-# 3. ATTENDRE QUE MARIADB ACCEPTE LES CONNEXIONS
-# ============================================
-echo ""
-echo "3/7 - Attente que MariaDB accepte les connexions..."
-
+# Attendre que MariaDB accepte les connexions
 COUNT=0
-MAX_TRIES=30
-
-while ! mysql -u root -e "SELECT 1" >/dev/null 2>&1; do
+while ! mysqladmin ping -h localhost --silent 2>/dev/null; do
     COUNT=$((COUNT + 1))
     if [ $COUNT -gt $MAX_TRIES ]; then
-        echo "ERREUR : MariaDB n'accepte pas les connexions après 30 secondes"
+        echo "ERREUR : MariaDB n'a pas demarre apres $MAX_TRIES secondes"
+        echo "Logs MariaDB :"
+        tail -50 /var/log/mysql/error.log 2>/dev/null || journalctl -u mysql -n 50 2>/dev/null || echo "Pas de logs disponibles"
         exit 1
     fi
-    echo "   -> Tentative $COUNT/$MAX_TRIES..."
+    echo "   -> Tentative ping $COUNT/$MAX_TRIES..."
     sleep 1
+done
+
+echo "   -> MariaDB repond au ping !"
+
+# Test de connexion réelle
+COUNT=0
+while ! mysql -h localhost -u root -e "SELECT 1" >/dev/null 2>&1; do
+    COUNT=$((COUNT + 1))
+    if [ $COUNT -gt 30 ]; then
+        echo "ERREUR : Impossible de se connecter a MariaDB"
+        exit 1
+    fi
+    echo "   -> Tentative connexion $COUNT/30..."
+    sleep 2
 done
 
 echo "   -> MariaDB accepte les connexions !"
-
-# Attendre encore 5 secondes pour être vraiment sûr
-echo "   -> Attente de sécurité (5 secondes)..."
+echo "   -> Attente supplementaire de 5 secondes..."
 sleep 5
 
 # ============================================
-# 4. CRÉER LA BASE DE DONNÉES AVEC LES VARIABLES D'ENVIRONNEMENT
+# 3. CREER LA BASE DE DONNEES
 # ============================================
 echo ""
-echo "4/7 - Création de la base de données..."
+echo "3/7 - Creation de la base de donnees..."
 
-# Utiliser les variables d'environnement au lieu de valeurs en dur
-mysql -u root << EOF
+mysql -h localhost -u root << EOF
 CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
 GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'%' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
 FLUSH PRIVILEGES;
 EOF
 
-echo "   -> Base de données '${DB_NAME}' créée !"
-
-# Attendre encore 3 secondes après la création de la BDD
+echo "   -> Base de donnees '${DB_NAME}' creee !"
 sleep 3
 
 # ============================================
-# 5. VÉRIFIER LA CONNEXION SYMFONY
+# 4. VERIFIER LA CONNEXION SYMFONY
 # ============================================
 echo ""
-echo "5/7 - Test de connexion Symfony..."
+echo "4/7 - Test de connexion Symfony..."
 
 cd /var/www/html
 
 # Tester la connexion avec une commande simple
-if php bin/console dbal:run-sql "SELECT 1" >/dev/null 2>&1; then
-    echo "   -> Connexion Symfony OK !"
-else
-    echo "   -> Première tentative échouée, nouvelle tentative..."
-    sleep 5
-    if ! php bin/console dbal:run-sql "SELECT 1" >/dev/null 2>&1; then
-        echo "ERREUR : Impossible de connecter Symfony à MariaDB"
-        echo "DATABASE_URL actuel : ${DATABASE_URL}"
+MAX_TRIES=3
+COUNT=0
+while [ $COUNT -lt $MAX_TRIES ]; do
+    if php bin/console dbal:run-sql "SELECT 1" >/dev/null 2>&1; then
+        echo "   -> Connexion Symfony OK !"
+        break
+    fi
+    COUNT=$((COUNT + 1))
+    if [ $COUNT -lt $MAX_TRIES ]; then
+        echo "   -> Tentative $COUNT/$MAX_TRIES echouee, nouvelle tentative..."
+        sleep 5
+    else
+        echo "ERREUR : Impossible de connecter Symfony a MariaDB"
+        echo "DATABASE_URL : ${DATABASE_URL}"
         exit 1
     fi
-fi
+done
 
 # ============================================
-# 6. LANCER LES MIGRATIONS DOCTRINE
-# ============================================
-echo ""
-echo "6/7 - Exécution des migrations Doctrine..."
-
-# Lancer les migrations
-php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1 | grep -v "User Deprecated" || true
-
-echo "   -> Migrations exécutées !"
-
-# ============================================
-# 7. CHARGER LES FIXTURES (SI NÉCESSAIRE)
+# 5. LANCER LES MIGRATIONS DOCTRINE
 # ============================================
 echo ""
-echo "7/7 - Vérification des fixtures..."
+echo "5/7 - Execution des migrations Doctrine..."
 
-# Vérifier si la table user existe et contient des données
-USER_COUNT=$(mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -sNe "SELECT COUNT(*) FROM user;" 2>/dev/null || echo "0")
+php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+echo "   -> Migrations executees !"
+
+# ============================================
+# 6. CHARGER LES FIXTURES (SI NECESSAIRE)
+# ============================================
+echo ""
+echo "6/7 - Verification des fixtures..."
+
+USER_COUNT=$(mysql -h localhost -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -sNe "SELECT COUNT(*) FROM user;" 2>/dev/null || echo "0")
 
 if [ "$USER_COUNT" -eq "0" ]; then
-    echo "   -> Aucune donnée trouvée, chargement des fixtures..."
-    php bin/console doctrine:fixtures:load --no-interaction 2>&1 | grep -v "User Deprecated" || true
-    echo "   -> Fixtures chargées avec succès !"
+    echo "   -> Aucune donnee trouvee, chargement des fixtures..."
+    php bin/console doctrine:fixtures:load --no-interaction
+    echo "   -> Fixtures chargees avec succes !"
 else
-    echo "   -> Données déjà présentes ($USER_COUNT utilisateurs)"
+    echo "   -> Donnees deja presentes ($USER_COUNT utilisateurs)"
 fi
 
 # ============================================
-# 8. DÉMARRER APACHE
+# 7. DEMARRER APACHE
 # ============================================
 echo ""
-echo "================================================"
-echo "Démarrage d'Apache..."
-echo "================================================"
+echo "7/7 - Demarrage d'Apache..."
 echo ""
-echo " ✅ Application prête !"
+echo "================================================"
+echo " Application prete !"
+echo "================================================"
 echo ""
 echo " Front React  : http://localhost"
 echo " API Symfony  : http://localhost:8080"
@@ -155,5 +159,5 @@ echo ""
 echo "================================================"
 echo ""
 
-# Lancer Apache (cette commande ne rend pas la main)
+# Lancer Apache
 exec apache2-foreground
