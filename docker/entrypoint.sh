@@ -9,7 +9,7 @@ echo "================================================"
 # 1. DEMARRER MARIADB
 # ============================================
 echo ""
-echo "1/6 - Demarrage de MariaDB..."
+echo "1/7 - Demarrage de MariaDB..."
 
 # Creer le dossier de donnees si necessaire
 mkdir -p /var/lib/mysql
@@ -23,116 +23,134 @@ fi
 
 # Demarrer MariaDB en arriere-plan
 mysqld_safe --user=mysql &
+MARIADB_PID=$!
 
 # ============================================
-# 2. ATTENDRE QUE MARIADB SOIT PRETE
+# 2. ATTENDRE QUE MARIADB REPONDE AU PING
 # ============================================
 echo ""
-echo "2/6 - Attente de MariaDB (ping)..."
+echo "2/7 - Attente de MariaDB (ping)..."
 
 MAX_TRIES=30
 COUNT=0
 
-while ! mysqladmin ping --silent; do
+while ! mysqladmin ping --silent 2>/dev/null; do
     COUNT=$((COUNT + 1))
     if [ $COUNT -gt $MAX_TRIES ]; then
-        echo "Erreur : MariaDB n'a pas demarre apres 30 secondes"
+        echo "ERREUR : MariaDB n'a pas demarre apres 30 secondes"
         exit 1
     fi
     echo "   -> Tentative $COUNT/$MAX_TRIES..."
     sleep 1
 done
 
-echo "MariaDB repond au ping !"
+echo "   -> MariaDB repond au ping !"
 
 # ============================================
-# 2.5 ATTENDRE QUE MARIADB ACCEPTE LES CONNEXIONS
+# 3. ATTENDRE QUE MARIADB ACCEPTE LES CONNEXIONS
 # ============================================
 echo ""
-echo "2.5/6 - Attente que MariaDB accepte les connexions..."
+echo "3/7 - Attente que MariaDB accepte les connexions..."
 
 COUNT=0
 MAX_TRIES=30
 
-while ! mysql -u root -e "SELECT 1" &>/dev/null; do
+while ! mysql -u root -e "SELECT 1" >/dev/null 2>&1; do
     COUNT=$((COUNT + 1))
     if [ $COUNT -gt $MAX_TRIES ]; then
-        echo "Erreur : MariaDB n'accepte pas les connexions apres 30 secondes"
+        echo "ERREUR : MariaDB n'accepte pas les connexions apres 30 secondes"
         exit 1
     fi
     echo "   -> Tentative $COUNT/$MAX_TRIES..."
     sleep 1
 done
 
-echo "MariaDB accepte les connexions !"
+echo "   -> MariaDB accepte les connexions !"
 
-# Attendre encore 3 secondes pour etre vraiment sur
-sleep 3
+# Attendre encore 5 secondes pour etre vraiment sur
+echo "   -> Attente de securite (5 secondes)..."
+sleep 5
 
 # ============================================
-# 3. CREER LA BASE DE DONNEES
+# 4. CREER LA BASE DE DONNEES
 # ============================================
 echo ""
-echo "3/6 - Creation de la base de donnees..."
+echo "4/7 - Creation de la base de donnees..."
 
-mysql -u root << EOF
+mysql -u root << 'EOF'
 CREATE DATABASE IF NOT EXISTS museeTransmitions CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 GRANT ALL PRIVILEGES ON museeTransmitions.* TO 'root'@'localhost' IDENTIFIED BY 'vaillanT1959';
 GRANT ALL PRIVILEGES ON museeTransmitions.* TO 'root'@'%' IDENTIFIED BY 'vaillanT1959';
 FLUSH PRIVILEGES;
 EOF
 
-echo "Base de donnees creee !"
+echo "   -> Base de donnees creee !"
 
-# Attendre encore 2 secondes apres la creation de la BDD
-sleep 2
+# Attendre encore 3 secondes apres la creation de la BDD
+sleep 3
 
 # ============================================
-# 4. LANCER LES MIGRATIONS DOCTRINE
+# 5. VERIFIER LA CONNEXION SYMFONY
 # ============================================
 echo ""
-echo "4/6 - Execution des migrations Doctrine..."
+echo "5/7 - Test de connexion Symfony..."
 
 cd /var/www/html
 
-# Tester la connexion Symfony avant de lancer les migrations
-echo "   -> Test de connexion Symfony..."
-php bin/console doctrine:database:drop --force --if-exists --no-interaction || true
-php bin/console doctrine:database:create --no-interaction
-
-echo "   -> Lancement des migrations..."
-php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
-
-echo "Migrations executees !"
+# Tester la connexion avec une commande simple
+if php bin/console dbal:run-sql "SELECT 1" >/dev/null 2>&1; then
+    echo "   -> Connexion Symfony OK !"
+else
+    echo "   -> Premiere tentative echouee, nouvelle tentative..."
+    sleep 5
+    if ! php bin/console dbal:run-sql "SELECT 1" >/dev/null 2>&1; then
+        echo "ERREUR : Impossible de connecter Symfony a MariaDB"
+        echo "Verifiez votre fichier .env.docker"
+        exit 1
+    fi
+fi
 
 # ============================================
-# 5. CHARGER LES FIXTURES (SI NECESSAIRE)
+# 6. LANCER LES MIGRATIONS DOCTRINE
 # ============================================
 echo ""
-echo "5/6 - Verification des fixtures..."
+echo "6/7 - Execution des migrations Doctrine..."
 
-# Verifier si la table user contient des donnees
+# Lancer les migrations
+php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1 | grep -v "User Deprecated" || true
+
+echo "   -> Migrations executees !"
+
+# ============================================
+# 7. CHARGER LES FIXTURES (SI NECESSAIRE)
+# ============================================
+echo ""
+echo "7/7 - Verification des fixtures..."
+
+# Verifier si la table user existe et contient des donnees
 USER_COUNT=$(mysql -u root -pvaillanT1959 museeTransmitions -sNe "SELECT COUNT(*) FROM user;" 2>/dev/null || echo "0")
 
 if [ "$USER_COUNT" -eq "0" ]; then
     echo "   -> Aucune donnee trouvee, chargement des fixtures..."
-    php bin/console doctrine:fixtures:load --no-interaction
-    echo "Fixtures chargees avec succes !"
+    php bin/console doctrine:fixtures:load --no-interaction 2>&1 | grep -v "User Deprecated" || true
+    echo "   -> Fixtures chargees avec succes !"
 else
-    echo "   -> Donnees deja presentes ($USER_COUNT utilisateurs), fixtures ignorees"
+    echo "   -> Donnees deja presentes ($USER_COUNT utilisateurs)"
 fi
 
 # ============================================
-# 6. DEMARRER APACHE
+# 8. DEMARRER APACHE
 # ============================================
 echo ""
-echo "6/6 - Demarrage d'Apache..."
+echo "================================================"
+echo "Demarrage d'Apache..."
+echo "================================================"
 echo ""
-echo "================================================"
-echo "Application prete !"
-echo "================================================"
-echo "React : http://localhost"
-echo "API Symfony : http://localhost:8080/api"
+echo " Application prete !"
+echo ""
+echo " Front React  : http://localhost"
+echo " API Symfony  : http://localhost:8080"
+echo ""
 echo "================================================"
 echo ""
 
