@@ -105,7 +105,6 @@ COPY composer.json composer.lock symfony.lock ./
 
 # Installer les dépendances Composer (sans autoload pour le moment)
 RUN composer install \
-    --no-dev \
     --optimize-autoloader \
     --no-scripts \
     --no-autoloader
