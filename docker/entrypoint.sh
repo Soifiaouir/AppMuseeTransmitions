@@ -41,84 +41,88 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
     mysql_install_db --user=mysql --datadir=/var/lib/mysql --skip-test-db
 fi
 
-# Démarrer MariaDB en mode sûr (sans auth pour config initiale)
-echo "   -> Demarrage de MariaDB en mode bootstrap..."
-mysqld_safe --user=mysql --skip-grant-tables &
-MARIADB_PID=$!
+# Démarrer MariaDB temporairement pour la config
+echo "   -> Demarrage temporaire pour configuration..."
+mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking --socket=/var/run/mysqld/mysqld.sock &
+TEMP_MARIADB_PID=$!
 
-# Attendre le socket
-echo "   -> Attente du socket MySQL..."
+# Attendre que le socket soit créé
+echo "   -> Attente du socket..."
 for i in {1..30}; do
     if [ -S /var/run/mysqld/mysqld.sock ]; then
-        echo "   -> Socket cree !"
         break
     fi
     sleep 1
 done
 
 # Attendre que MariaDB réponde
-echo "   -> Attente que MariaDB reponde..."
+echo "   -> Attente de MariaDB..."
 for i in {1..30}; do
-    if mysqladmin ping -h localhost --silent 2>/dev/null; then
+    if mysqladmin ping --socket=/var/run/mysqld/mysqld.sock --silent 2>/dev/null; then
         echo "   -> MariaDB pret !"
         break
     fi
     sleep 1
 done
 
-sleep 3
+sleep 2
 
 # ============================================
-# 2. CONFIGURER LE MOT DE PASSE ROOT
+# 2. CONFIGURER LA BASE DE DONNEES
 # ============================================
 echo ""
-echo "2/6 - Configuration du mot de passe root..."
+echo "2/6 - Configuration de la base de donnees..."
 
-mysql -h localhost << EOF
-FLUSH PRIVILEGES;
+mysql --socket=/var/run/mysqld/mysqld.sock << EOF
+-- Configurer le mot de passe root
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
 CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+
+-- Créer la base de données
+CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'localhost';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'%';
+
 FLUSH PRIVILEGES;
 EOF
 
-echo "   -> Mot de passe configure !"
+echo "   -> Configuration terminee !"
+sleep 1
 
-# Redémarrer MariaDB en mode normal
-echo "   -> Redemarrage de MariaDB..."
-kill $MARIADB_PID
-wait $MARIADB_PID 2>/dev/null || true
-sleep 2
+# Arrêter MariaDB temporaire
+echo "   -> Arret du serveur temporaire..."
+mysqladmin --socket=/var/run/mysqld/mysqld.sock -u root -p${DB_ROOT_PASSWORD} shutdown
+wait $TEMP_MARIADB_PID 2>/dev/null || true
 
+echo "   -> Serveur arrete, attente de 3 secondes..."
+sleep 3
+
+# ============================================
+# 3. DEMARRER MARIADB EN MODE NORMAL
+# ============================================
+echo ""
+echo "3/6 - Demarrage de MariaDB en mode production..."
+
+# Démarrer MariaDB en mode normal
 mysqld_safe --user=mysql &
 MARIADB_PID=$!
 
-# Attendre redémarrage
-for i in {1..30}; do
+# Attendre que MariaDB soit prêt
+echo "   -> Attente du demarrage..."
+for i in {1..60}; do
     if mysql -u root -p${DB_ROOT_PASSWORD} -e "SELECT 1" >/dev/null 2>&1; then
-        echo "   -> MariaDB redemarre en mode normal !"
+        echo "   -> MariaDB demarre en mode production !"
         break
+    fi
+    if [ $i -eq 60 ]; then
+        echo "ERREUR : MariaDB n'a pas demarre apres 60 secondes"
+        exit 1
     fi
     sleep 1
 done
 
-sleep 5
-
-# ============================================
-# 3. CREER LA BASE DE DONNEES
-# ============================================
-echo ""
-echo "3/6 - Creation de la base de donnees..."
-
-mysql -h localhost -u root -p${DB_ROOT_PASSWORD} << EOF
-CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'localhost';
-GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'%';
-FLUSH PRIVILEGES;
-EOF
-
-echo "   -> Base '${DB_NAME}' creee !"
 sleep 3
 
 # ============================================
@@ -130,14 +134,21 @@ echo "4/6 - Test de connexion Symfony..."
 cd /var/www/html
 
 # Tester la connexion
-if ! php bin/console dbal:run-sql "SELECT 1" >/dev/null 2>&1; then
-    echo "ERREUR : Symfony ne peut pas se connecter a MariaDB"
-    echo "Verifiez les variables d'environnement"
-    cat /var/www/html/.env.local | grep DATABASE_URL
-    exit 1
-fi
-
-echo "   -> Connexion Symfony OK !"
+MAX_RETRY=3
+for i in $(seq 1 $MAX_RETRY); do
+    if php bin/console dbal:run-sql "SELECT 1" >/dev/null 2>&1; then
+        echo "   -> Connexion Symfony OK !"
+        break
+    fi
+    if [ $i -eq $MAX_RETRY ]; then
+        echo "ERREUR : Symfony ne peut pas se connecter a MariaDB"
+        echo "Contenu de DATABASE_URL :"
+        grep DATABASE_URL /var/www/html/.env.local || true
+        exit 1
+    fi
+    echo "   -> Tentative $i/$MAX_RETRY echouee, nouvelle tentative..."
+    sleep 3
+done
 
 # ============================================
 # 5. LANCER LES MIGRATIONS DOCTRINE
@@ -145,7 +156,7 @@ echo "   -> Connexion Symfony OK !"
 echo ""
 echo "5/6 - Execution des migrations Doctrine..."
 
-php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1 | grep -v "deprecated" || true
+php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1 | grep -v -i "deprecated\|user deprecated" || true
 
 echo "   -> Migrations terminees !"
 
@@ -159,7 +170,7 @@ USER_COUNT=$(mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -sNe "SELECT COUNT(*
 
 if [ "$USER_COUNT" -eq "0" ]; then
     echo "   -> Chargement des fixtures..."
-    php bin/console doctrine:fixtures:load --no-interaction 2>&1 | grep -v "deprecated" || true
+    php bin/console doctrine:fixtures:load --no-interaction 2>&1 | grep -v -i "deprecated\|user deprecated" || true
     echo "   -> Fixtures chargees !"
 else
     echo "   -> ${USER_COUNT} utilisateurs deja presents"
@@ -172,8 +183,10 @@ echo ""
 echo "================================================"
 echo " Application prete !"
 echo "================================================"
+echo ""
 echo " Front React  : http://localhost"
 echo " API Symfony  : http://localhost:8080"
+echo ""
 echo "================================================"
 echo ""
 
