@@ -116,7 +116,7 @@ COPY . /var/www/html
 
 #  IMPORTANT : Copier le fichier .env.prod.example comme template
 # Les vraies valeurs seront injectées via les variables d'environnement du container
-COPY .env.prod. /var/www/html/.env.local
+COPY .env.prod.example /var/www/html/.env.local
 
 # Finaliser l'installation Composer
 RUN composer dump-autoload --optimize --no-dev --classmap-authoritative
