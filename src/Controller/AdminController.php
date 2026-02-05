@@ -48,6 +48,7 @@ final class AdminController extends AbstractController
         $formRegistration = $this->createForm(RegistrationFormType::class, $user);
         $formRegistration->handleRequest($request);
 
+
         if ($formRegistration->isSubmitted() && $formRegistration->isValid()) {
             /** @var string $plainPassword */
             $plainPassword = $formRegistration->get('plainPassword')->getData();
