@@ -35,7 +35,7 @@ echo ""
 echo "1/9 - Attente MariaDB (db:3306)..."
 MAX_RETRY=30
 for i in $(seq 1 $MAX_RETRY); do
-    if mysqladmin ping -h db -P 3306 -u root -p${DB_ROOT_PASSWORD} --silent 2>/dev/null; then
+    if nc -z db 3306 2>/dev/null; then
         echo "   -> MariaDB OK !"
         break
     fi
