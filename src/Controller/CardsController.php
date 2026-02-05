@@ -22,7 +22,7 @@ final class CardsController extends AbstractController
         private CardRepository $cardRepository)
     {}
 
-    #[Route('/{page}', name: 'list', requirements: ['page' => '\d+'])]
+    #[Route('/{page}', name: 'list', requirements: ['page' => '\d+'], methods: ['GET'])]
     public function list(int $page = 1): Response
     {
         $totalCards = $this->cardRepository->count();
@@ -43,7 +43,7 @@ final class CardsController extends AbstractController
         ]);
     }
 
-    #[Route('/add', name: 'add')]
+    #[Route('/add', name: 'add', methods: ['GET', 'POST'])]
     public function add(Request $request): Response
     {
         $card = new Card();
@@ -62,7 +62,7 @@ final class CardsController extends AbstractController
         ]);
     }
 
-    #[Route('/edit/{id}', name: 'edit', requirements: ['id' => '\d+'])]
+    #[Route('/edit/{id}', name: 'edit', requirements: ['id' => '\d+'], methods: ['PUT'])]
     public function edit(Request $request, int $id): Response
     {
         $card = $this->cardRepository->find($id);
@@ -85,7 +85,7 @@ final class CardsController extends AbstractController
         ]);
     }
 
-    #[Route('/details/{id}', name: 'details', requirements: ['id' => '\d+'])]
+    #[Route('/details/{id}', name: 'details', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function details(int $id): Response
     {
         $card = $this->cardRepository->findOneWithRelations($id);
@@ -94,7 +94,7 @@ final class CardsController extends AbstractController
         ]);
     }
 
-    #[Route('/delete/{id}', name: 'delete', requirements: ['id' => '\d+'])]
+    #[Route('/delete/{id}', name: 'delete', requirements: ['id' => '\d+'], methods: ['DELETE'])]
     public function delete(int $id): Response
     {
         $card = $this->cardRepository->find($id);

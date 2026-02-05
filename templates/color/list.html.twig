@@ -28,7 +28,7 @@
                             <td>{{ color.name }}</td>
                             <td>{{ color.colorCode }}</td>
                             <td>
-                                <a href="{{ path('color_edit', {'id': color.id}) }}">Modifier</a>
+                                <a href="{{ path('color_edit', {'id': color.id}) }}"><button class="buttonEdit">Modifier</button></a>
                                 <a href="{{ path('color_remove', {'id': color.id}) }}" class="buttonRemove" onclick="return confirm('Supprimer cette couleur ?')">Supprimer</a>
                             </td>
                         </tr>

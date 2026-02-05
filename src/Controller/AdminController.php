@@ -26,7 +26,7 @@ final class AdminController extends AbstractController
     ) {
     }
 
-    #[Route('/dashboard', name: 'dashboard')]
+    #[Route('/dashboard', name: 'dashboard', methods: ['GET'])]
     public function dashboard(ThemeRepository $themeRepository): Response
     {
         $users = $this->userRepository->findAll();
@@ -41,7 +41,7 @@ final class AdminController extends AbstractController
         ]);
     }
 
-    #[Route('/user/add', name: 'add_user')]
+    #[Route('/user/add', name: 'add_user', methods: ['GET', 'POST'])]
     public function addUser(Request $request): Response
     {
         $user = new User();
@@ -90,7 +90,7 @@ final class AdminController extends AbstractController
     /**
      * @throws RandomException
      */
-    #[Route('/user/{id}/reset_password', name: 'reset_password', requirements: ['id' => '\d+'])]
+    #[Route('/user/{id}/reset_password', name: 'reset_password', requirements: ['id' => '\d+'], methods: ['POST', 'PUT'])]
     public function reset_password(int $id): Response
     {
         $user = $this->userRepository->find($id);
@@ -116,8 +116,8 @@ final class AdminController extends AbstractController
         $this->em->flush();
 
         $this->addFlash('success', 'Mot de passe temporaire réinitialisé.');
-        $this->addFlash('Warning', 'Nouveau mot de passe temporaire : '. $tempPassword);
-        $this->addFlash('Warning', 'Le mot de passe est également visible dans le tableau ci-dessous.');
+        $this->addFlash('warning', 'Nouveau mot de passe temporaire : '. $tempPassword);
+        $this->addFlash('warning', 'Le mot de passe est également visible dans le tableau ci-dessous.');
 
         return $this->redirectToRoute('admin_dashboard');
     }
@@ -137,7 +137,7 @@ final class AdminController extends AbstractController
         return $password;
     }
 
-    #[Route('/user/{id}/remove', name: 'remove_user', requirements:['id' => '\d+'])]
+    #[Route('/user/{id}/remove', name: 'remove_user', requirements:['id' => '\d+'], methods: ['DELETE'])]
     public function removeUser(User $user): Response
     {
         $this->em->remove($user);

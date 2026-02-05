@@ -127,7 +127,7 @@ final class MediaController extends AbstractController
         ]);
     }
 
-    #[Route('/remove/{id}', name: 'remove', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[Route('/remove/{id}', name: 'remove', requirements: ['id' => '\d+'], methods: ['DELETE'])]
     public function remove(int $id): Response
     {
         $media = $this->em->getRepository(Media::class)->find($id);
