@@ -1,4 +1,4 @@
-name: Build & Push Docker Image (Multi-conteneurs)
+name: Build & Push Docker Image
 
 on:
   push:
@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout du repo BACK
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Login Docker Hub
@@ -21,7 +21,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build et Push image APP (Symfony + React)
+      - name: Build & Push
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -31,17 +31,10 @@ jobs:
             REACT_REPO_URL=https://github.com/Soifiaouir/AppMuseeTransmitionsReact.git
             REACT_BRANCH=master
 
-      - name: Test local (optionnel)
-        run: |
-          echo "Test de l'image..."
-          docker run --rm ${{ secrets.DOCKER_REPOSITORY }}:latest php bin/console --version
-
       - name: Confirmation
         run: |
           echo "================================================"
-          echo "Image APP publiée !"
-          echo "Repository : ${{ secrets.DOCKER_REPOSITORY }}:latest"
-          echo "Frontend   : http://localhost (port 80)"
-          echo "API Symfony: http://localhost:8080"
-          echo "Utiliser avec docker-compose.yml (DB séparée)"
+          echo "Image publiée : ${{ secrets.DOCKER_REPOSITORY }}:latest"
+          echo "Frontend: localhost:80 | API: localhost:8080"
+          echo "DB séparée via docker-compose"
           echo "================================================"
