@@ -3,7 +3,7 @@ FROM php:8.4-apache
 ARG REACT_REPO_URL
 ARG REACT_BRANCH=master
 
-# INSTALL TOOLS (avec netcat-openbsd ajouté)
+# INSTALL TOOLS (avec netcat-openbsd ajoute)
 RUN apt-get update && apt-get install -y \
     git unzip curl wget netcat-openbsd \
     libicu-dev libzip-dev libpng-dev libjpeg-dev libfreetype6-dev \
@@ -49,14 +49,24 @@ RUN php bin/console importmap:install || true \
     && php bin/console cache:clear --env=prod --no-warmup || true \
     && php bin/console cache:warmup --env=prod || true
 
-# REACT BUILD
+# REACT BUILD - CORRIGE
 RUN if [ -n "$REACT_REPO_URL" ]; then \
+        echo "Clonage du repo React : $REACT_REPO_URL"; \
         git clone --branch ${REACT_BRANCH} --depth 1 ${REACT_REPO_URL} /tmp/react-app && \
-        cd /tmp/react-app && npm install && npm run build && \
-        mkdir -p /var/www/react && cp -r dist/* /var/www/react/ && \
+        cd /tmp/react-app && \
+        echo "Installation npm..."; \
+        npm install && \
+        echo "Build React..."; \
+        npm run build && \
+        echo "Copie vers /var/www/react/dist/..."; \
+        mkdir -p /var/www/react && \
+        cp -r dist /var/www/react/ && \
+        echo "React build termine !"; \
+        ls -la /var/www/react/dist/ && \
         cd / && rm -rf /tmp/react-app; \
     else \
-        mkdir -p /var/www/react && echo "<h1>React non configuré</h1>" > /var/www/react/index.html; \
+        echo "REACT_REPO_URL non defini - Skip du build React"; \
+        mkdir -p /var/www/react && echo "<h1>React non configure</h1>" > /var/www/react/index.html; \
     fi
 
 RUN chown -R www-data:www-data /var/www/react
