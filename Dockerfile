@@ -142,18 +142,21 @@ RUN php bin/console cache:clear --env=prod --no-warmup || true \
 # PARTIE 7 : BUILD DU REACT
 # ============================================
 
-# Cloner le repo React
 RUN if [ -n "$REACT_REPO_URL" ]; then \
         echo "📦 Clonage du repo React : $REACT_REPO_URL"; \
         git clone --branch ${REACT_BRANCH} --depth 1 ${REACT_REPO_URL} /tmp/react-app; \
         cd /tmp/react-app; \
+        \
         echo "📦 Installation des dépendances npm..."; \
         npm install; \
+        \
         echo "🔨 Build de React..."; \
         npm run build; \
+        \
         echo "📁 Copie du build React..."; \
         mkdir -p /var/www/react; \
         cp -r dist /var/www/react/; \
+        \
         echo "🧹 Nettoyage..."; \
         cd /; \
         rm -rf /tmp/react-app; \
