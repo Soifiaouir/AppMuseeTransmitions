@@ -191,7 +191,7 @@ fi
 # ============================================
 echo ""
 echo "================================================"
-echo " ✅ APPLICATION PRÊTE !"
+echo " ✅APPLICATION PRÊTE !"
 echo "================================================"
 echo ""
 echo " 🌐 Frontend React  : http://localhost"

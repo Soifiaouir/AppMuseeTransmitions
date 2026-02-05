@@ -52,7 +52,7 @@ final class ColorController extends AbstractController
             'formColor' => $formColor,
         ]);
     }
-    #[Route('/edit/{id}', name: 'edit', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[Route('/edit/{id}', name: 'edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function edit(Request $request, int $id): Response
     {
         $color = $this->colorRepository->find($id);
@@ -69,7 +69,7 @@ final class ColorController extends AbstractController
             'formColor' => $formColor
         ]);
     }
-    #[Route('/remove', name: 'remove', requirements: ['id' => '\d+'], methods: ['GET','POST'])]
+    #[Route('/remove/{id}', name: 'remove', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function remove(int $id): Response
     {
         $colors = $this->colorRepository->find($id);

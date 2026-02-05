@@ -71,11 +71,13 @@
                         {% endif %}
                     </td>
                     <td class="ligne">
-                        <a href="{{ path('admin_reset_password', {'id': user.id}) }}"
-                           class="buttonEdit"
-                           onclick="return confirm('Réinitialiser le mot de passe de {{ user.username }} ?')">
-                            Réinitialiser
-                        </a>
+                        <form method="POST" action="{{ path('admin_reset_password', {'id': user.id}) }}" style="display: inline;">
+                            <button type="submit"
+                                    class="buttonEdit"
+                                    onclick="return confirm('Réinitialiser le mot de passe de {{ user.username }} ?')">
+                                Réinitialiser
+                            </button>
+                        </form>
                         <a href="{{ path('admin_remove_user', {'id': user.id}) }}"
                            class="buttonRemove"
                            onclick="return confirm('Supprimer cet utilisateur {{ user.username }} ?')">
