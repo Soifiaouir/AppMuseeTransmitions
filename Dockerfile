@@ -120,10 +120,12 @@ COPY .env.docker /var/www/html/.env.docker
 RUN composer dump-autoload --optimize --classmap-authoritative
 
 # ✅ Créer les dossiers Symfony avec permissions ultra-permissives
+
 RUN mkdir -p var/cache var/log var/sessions public/uploads \
-    && chown -R www-data:www-data /var/www/html \
+    && chown -R www-data:www-data /var/www/html/var \
+    && chown -R www-data:www-data /var/www/html/public/uploads \
     && chmod -R 777 /var/www/html/var \
-    && chmod -R 775 /var/www/html/public
+    && chmod -R 775 /var/www/html/public/uploads
 
 # ✅ NOUVEAU : Compiler les assets AssetMapper
 RUN php bin/console importmap:install || true \
