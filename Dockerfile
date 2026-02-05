@@ -58,6 +58,7 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
 
 # Installer Composer
 COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
+
 # ============================================
 # PARTIE 4 : CONFIGURATION APACHE
 # ============================================
@@ -103,7 +104,7 @@ WORKDIR /var/www/html
 # Copier les fichiers de dépendances d'abord (cache Docker)
 COPY composer.json composer.lock symfony.lock ./
 
-# IMPORTANT : Installer AVEC --dev pour avoir les fixtures
+# ✅ IMPORTANT : Installer AVEC les dépendances de dev (pour les fixtures)
 RUN composer install \
     --optimize-autoloader \
     --no-scripts \
@@ -118,17 +119,22 @@ COPY .env.docker /var/www/html/.env.docker
 # Finaliser l'installation Composer
 RUN composer dump-autoload --optimize --classmap-authoritative
 
-# Créer les dossiers Symfony et configurer les permissions
+# ✅ Créer les dossiers Symfony avec permissions ultra-permissives
 RUN mkdir -p var/cache var/log var/sessions public/uploads \
     && chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html/var \
+    && chmod -R 777 /var/www/html/var \
     && chmod -R 775 /var/www/html/public
 
-# CRITIQUE : Warm up du cache en mode prod AVEC les bonnes permissions
+# ✅ NOUVEAU : Compiler les assets AssetMapper
+RUN php bin/console importmap:install || true \
+    && php bin/console asset-map:compile || true \
+    && chown -R www-data:www-data /var/www/html/public/assets || true
+
+# ✅ Warm up du cache en prod avec permissions correctes
 RUN php bin/console cache:clear --env=prod --no-warmup || true \
     && php bin/console cache:warmup --env=prod || true \
     && chown -R www-data:www-data /var/www/html/var \
-    && chmod -R 775 /var/www/html/var
+    && chmod -R 777 /var/www/html/var
 
 # ============================================
 # PARTIE 7 : BUILD DU REACT
@@ -136,22 +142,22 @@ RUN php bin/console cache:clear --env=prod --no-warmup || true \
 
 # Cloner le repo React
 RUN if [ -n "$REACT_REPO_URL" ]; then \
-        echo " Clonage du repo React : $REACT_REPO_URL"; \
+        echo "📦 Clonage du repo React : $REACT_REPO_URL"; \
         git clone --branch ${REACT_BRANCH} --depth 1 ${REACT_REPO_URL} /tmp/react-app; \
         cd /tmp/react-app; \
-        echo " Installation des dépendances npm..."; \
+        echo "📦 Installation des dépendances npm..."; \
         npm install; \
-        echo " Build de React..."; \
+        echo "🔨 Build de React..."; \
         npm run build; \
-        echo "Copie du build React..."; \
+        echo "📁 Copie du build React..."; \
         mkdir -p /var/www/react; \
         cp -r dist /var/www/react/; \
-        echo "Nettoyage..."; \
+        echo "🧹 Nettoyage..."; \
         cd /; \
         rm -rf /tmp/react-app; \
-        echo " React buildé avec succès !"; \
+        echo "✅ React buildé avec succès !"; \
     else \
-        echo " REACT_REPO_URL non défini - Skip du build React"; \
+        echo "⚠️  REACT_REPO_URL non défini - Skip du build React"; \
         mkdir -p /var/www/react/dist; \
         echo "<h1>React non configuré</h1>" > /var/www/react/dist/index.html; \
     fi

@@ -2,11 +2,11 @@
 set -e
 
 echo "================================================"
-echo "Demarrage du conteneur Docker"
+echo "Démarrage du conteneur Docker"
 echo "================================================"
 
 # ============================================
-# 0. PREPARER LES VARIABLES D'ENVIRONNEMENT
+# 0. PRÉPARER LES VARIABLES D'ENVIRONNEMENT
 # ============================================
 
 # Valeurs par défaut si non fournies
@@ -16,20 +16,20 @@ export APP_SECRET=${APP_SECRET:-change-me-in-production}
 export JWT_PASSPHRASE=${JWT_PASSPHRASE:-change-me-too}
 
 # Remplacer les placeholders dans .env.docker
-echo "0/7 - Configuration des variables d'environnement..."
+echo "0/8 - Configuration des variables d'environnement..."
 sed -e "s|__DB_NAME__|${DB_NAME}|g" \
     -e "s|__DB_ROOT_PASSWORD__|${DB_ROOT_PASSWORD}|g" \
     -e "s|__APP_SECRET__|${APP_SECRET}|g" \
     -e "s|__JWT_PASSPHRASE__|${JWT_PASSPHRASE}|g" \
     /var/www/html/.env.docker > /var/www/html/.env.local
 
-echo "   -> Variables configurees !"
+echo "   -> Variables configurées !"
 
 # ============================================
-# 1. DEMARRER MARIADB
+# 1. DÉMARRER MARIADB
 # ============================================
 echo ""
-echo "1/7 - Demarrage de MariaDB..."
+echo "1/8 - Démarrage de MariaDB..."
 
 # Créer les dossiers
 mkdir -p /var/lib/mysql /var/run/mysqld
@@ -42,7 +42,7 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
 fi
 
 # Démarrer MariaDB temporairement pour la config
-echo "   -> Demarrage temporaire pour configuration..."
+echo "   -> Démarrage temporaire pour configuration..."
 mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking --socket=/var/run/mysqld/mysqld.sock &
 TEMP_MARIADB_PID=$!
 
@@ -59,7 +59,7 @@ done
 echo "   -> Attente de MariaDB..."
 for i in {1..30}; do
     if mysqladmin ping --socket=/var/run/mysqld/mysqld.sock --silent 2>/dev/null; then
-        echo "   -> MariaDB pret !"
+        echo "   -> MariaDB prêt !"
         break
     fi
     sleep 1
@@ -68,10 +68,10 @@ done
 sleep 2
 
 # ============================================
-# 2. CONFIGURER LA BASE DE DONNEES
+# 2. CONFIGURER LA BASE DE DONNÉES
 # ============================================
 echo ""
-echo "2/7 - Configuration de la base de donnees..."
+echo "2/8 - Configuration de la base de données..."
 
 mysql --socket=/var/run/mysqld/mysqld.sock << EOF
 -- Configurer le mot de passe root
@@ -88,36 +88,36 @@ GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'%';
 FLUSH PRIVILEGES;
 EOF
 
-echo "   -> Configuration terminee !"
+echo "   -> Configuration terminée !"
 sleep 1
 
 # Arrêter MariaDB temporaire
-echo "   -> Arret du serveur temporaire..."
+echo "   -> Arrêt du serveur temporaire..."
 mysqladmin --socket=/var/run/mysqld/mysqld.sock -u root -p${DB_ROOT_PASSWORD} shutdown
 wait $TEMP_MARIADB_PID 2>/dev/null || true
 
-echo "   -> Serveur arrete, attente de 3 secondes..."
+echo "   -> Serveur arrêté, attente de 3 secondes..."
 sleep 3
 
 # ============================================
-# 3. DEMARRER MARIADB EN MODE NORMAL
+# 3. DÉMARRER MARIADB EN MODE NORMAL
 # ============================================
 echo ""
-echo "3/7 - Demarrage de MariaDB en mode production..."
+echo "3/8 - Démarrage de MariaDB en mode production..."
 
 # Démarrer MariaDB en mode normal
 mysqld_safe --user=mysql &
 MARIADB_PID=$!
 
 # Attendre que MariaDB soit prêt
-echo "   -> Attente du demarrage..."
+echo "   -> Attente du démarrage..."
 for i in {1..60}; do
     if mysql -u root -p${DB_ROOT_PASSWORD} -e "SELECT 1" >/dev/null 2>&1; then
-        echo "   -> MariaDB demarre en mode production !"
+        echo "   -> MariaDB démarré en mode production !"
         break
     fi
     if [ $i -eq 60 ]; then
-        echo "ERREUR : MariaDB n'a pas demarre apres 60 secondes"
+        echo "ERREUR : MariaDB n'a pas démarré après 60 secondes"
         exit 1
     fi
     sleep 1
@@ -126,10 +126,10 @@ done
 sleep 3
 
 # ============================================
-# 4. VERIFIER LA CONNEXION SYMFONY
+# 4. VÉRIFIER LA CONNEXION SYMFONY
 # ============================================
 echo ""
-echo "4/7 - Test de connexion Symfony..."
+echo "4/8 - Test de connexion Symfony..."
 
 cd /var/www/html
 
@@ -141,10 +141,10 @@ for i in $(seq 1 $MAX_RETRY); do
         break
     fi
     if [ $i -eq $MAX_RETRY ]; then
-        echo "ERREUR : Symfony ne peut pas se connecter a MariaDB"
+        echo "ERREUR : Symfony ne peut pas se connecter à MariaDB"
         exit 1
     fi
-    echo "   -> Tentative $i/$MAX_RETRY echouee..."
+    echo "   -> Tentative $i/$MAX_RETRY échouée..."
     sleep 3
 done
 
@@ -152,62 +152,81 @@ done
 # 5. LANCER LES MIGRATIONS DOCTRINE
 # ============================================
 echo ""
-echo "5/7 - Execution des migrations Doctrine..."
+echo "5/8 - Exécution des migrations Doctrine..."
 
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1 | grep -v -i "deprecated\|user deprecated" || true
 
-echo "   -> Migrations terminees !"
+echo "   -> Migrations terminées !"
 
 # ============================================
-# 6. CREER L'UTILISATEUR ADMIN
+# 6. CHARGER LES FIXTURES
 # ============================================
 echo ""
-echo "6/7 - Creation de l'utilisateur admin..."
+echo "6/8 - Chargement des fixtures..."
 
-# Vérifier si l'admin existe déjà
-ADMIN_EXISTS=$(mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -sNe "SELECT COUNT(*) FROM user WHERE username='admin';" 2>/dev/null || echo "0")
+# Vérifier si des données existent déjà
+TABLES_COUNT=$(mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -sNe "SHOW TABLES;" 2>/dev/null | wc -l || echo "0")
+USER_COUNT=0
 
-if [ "$ADMIN_EXISTS" -eq "0" ]; then
-    echo "   -> Creation de l'utilisateur admin..."
+if [ "$TABLES_COUNT" -gt "0" ]; then
+    USER_COUNT=$(mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -sNe "SELECT COUNT(*) FROM user;" 2>/dev/null || echo "0")
+fi
 
-    # Générer le hash du mot de passe "admin" avec Symfony
-    ADMIN_PASSWORD_HASH=$(php bin/console security:hash-password admin --quiet | tail -1 | awk '{print $NF}')
+if [ "$USER_COUNT" -eq "0" ]; then
+    echo "   -> Aucune donnée trouvée, chargement des fixtures..."
 
-    # Insérer l'admin en base
-    mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} << EOF
-INSERT INTO user (username, password, roles, password_change, password_change_date)
-VALUES ('admin', '${ADMIN_PASSWORD_HASH}', '["ROLE_ADMIN"]', 0, NOW());
-EOF
+    # Charger les fixtures (avec --no-interaction pour éviter la confirmation)
+    php bin/console doctrine:fixtures:load --no-interaction 2>&1 | grep -v -i "deprecated\|user deprecated" || true
 
-    echo "   -> Utilisateur admin cree (username: admin, password: admin)"
+    echo "   -> Fixtures chargées avec succès !"
 else
-    echo "   -> Utilisateur admin deja present"
+    echo "   -> Données déjà présentes ($USER_COUNT utilisateurs), skip des fixtures"
 fi
 
 # ============================================
-# 7. CORRIGER LES PERMISSIONS
+# 7. COMPILER LES ASSETS (CSS/JS)
 # ============================================
 echo ""
-echo "7/7 - Correction des permissions..."
+echo "7/8 - Compilation des assets..."
+
+# Vérifier si AssetMapper est configuré
+if php bin/console list | grep -q "importmap"; then
+    echo "   -> AssetMapper détecté, compilation..."
+    php bin/console importmap:install || true
+    php bin/console asset-map:compile || true
+    echo "   -> Assets compilés !"
+else
+    echo "   -> Pas d'AssetMapper configuré, skip"
+fi
+
+# ============================================
+# 8. CORRIGER LES PERMISSIONS
+# ============================================
+echo ""
+echo "8/8 - Correction des permissions..."
 
 # S'assurer que www-data possède tout
 chown -R www-data:www-data /var/www/html/var
-chmod -R 775 /var/www/html/var
+chmod -R 777 /var/www/html/var
 
-echo "   -> Permissions corrigees !"
+# Permissions pour les assets
+chown -R www-data:www-data /var/www/html/public
+chmod -R 775 /var/www/html/public
+
+echo "   -> Permissions corrigées !"
 
 # ============================================
-# 8. DEMARRER APACHE
+# 9. DÉMARRER APACHE
 # ============================================
 echo ""
 echo "================================================"
-echo " Application prete !"
+echo " ✅ Application prête !"
 echo "================================================"
 echo ""
-echo " Front React  : http://localhost"
-echo " API Symfony  : http://localhost:8080"
+echo " 🌐 Front React  : http://localhost"
+echo " 🔧 API Symfony  : http://localhost:8080"
 echo ""
-echo " Utilisateur admin : admin / admin"
+echo " 👤 Admin créé via fixtures"
 echo ""
 echo "================================================"
 echo ""
