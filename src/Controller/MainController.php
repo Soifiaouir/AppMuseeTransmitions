@@ -123,7 +123,7 @@ final class MainController extends AbstractController
         ]);
     }
 
-    #[Route('/theme/edit/{id}', name: 'edit_theme', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[Route('/theme/edit/{id}', name: 'edit_theme', requirements: ['id' => '\d+'], methods: ['GET','POST'])]
     public function edit(Theme $theme, Request $request, MediaUploader $uploader): Response
     {
         if ($theme->isArchived()) {

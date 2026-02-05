@@ -94,7 +94,7 @@ final class CardsController extends AbstractController
         ]);
     }
 
-    #[Route('/delete/{id}', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[Route('/delete/{id}', name: 'delete', requirements: ['id' => '\d+'], methods: ['GET','POST'])]
     public function delete(int $id): Response
     {
         $card = $this->cardRepository->find($id);

@@ -2,233 +2,113 @@
 set -e
 
 echo "================================================"
-echo "Démarrage du conteneur Docker"
+echo "Démarrage du conteneur APP (Symfony + React)"
 echo "================================================"
 
 # ============================================
-# 0. PRÉPARER LES VARIABLES D'ENVIRONNEMENT
+# 0. PRÉPARER VARIABLES + .env.local
 # ============================================
 
-# Valeurs par défaut si non fournies
 export DB_NAME=${DB_NAME:-museeTransmitions}
-export DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-root}
+export DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-vaillanT1959}
 export APP_SECRET=${APP_SECRET:-change-me-in-production}
 export JWT_PASSPHRASE=${JWT_PASSPHRASE:-change-me-too}
 
-# Remplacer les placeholders dans .env.docker
-echo "0/8 - Configuration des variables d'environnement..."
+cd /var/www/html
+
+echo "0/9 - Configuration variables d'environnement..."
 sed -e "s|__DB_NAME__|${DB_NAME}|g" \
     -e "s|__DB_ROOT_PASSWORD__|${DB_ROOT_PASSWORD}|g" \
     -e "s|__APP_SECRET__|${APP_SECRET}|g" \
     -e "s|__JWT_PASSPHRASE__|${JWT_PASSPHRASE}|g" \
-    /var/www/html/.env.docker > /var/www/html/.env.local
+    .env.docker > .env.local
 
-echo "   -> Variables configurées !"
-
-# ============================================
-# 1. DÉMARRER MARIADB
-# ============================================
-echo ""
-echo "1/8 - Démarrage de MariaDB..."
-
-# Créer les dossiers
-mkdir -p /var/lib/mysql /var/run/mysqld
-chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
-
-# Initialiser MariaDB si première fois
-if [ ! -d "/var/lib/mysql/mysql" ]; then
-    echo "   -> Initialisation de MariaDB..."
-    mysql_install_db --user=mysql --datadir=/var/lib/mysql --skip-test-db
-fi
-
-# Démarrer MariaDB temporairement pour la config
-echo "   -> Démarrage temporaire pour configuration..."
-mysqld --user=mysql --datadir=/var/lib/mysql --skip-networking --socket=/var/run/mysqld/mysqld.sock &
-TEMP_MARIADB_PID=$!
-
-# Attendre que le socket soit créé
-echo "   -> Attente du socket..."
-for i in {1..30}; do
-    if [ -S /var/run/mysqld/mysqld.sock ]; then
-        break
-    fi
-    sleep 1
-done
-
-# Attendre que MariaDB réponde
-echo "   -> Attente de MariaDB..."
-for i in {1..30}; do
-    if mysqladmin ping --socket=/var/run/mysqld/mysqld.sock --silent 2>/dev/null; then
-        echo "   -> MariaDB prêt !"
-        break
-    fi
-    sleep 1
-done
-
-sleep 2
+# DATABASE_URL → db:3306 (multi-conteneur)
+sed -i 's|localhost/__DB_NAME__|db:3306/'${DB_NAME}'|g; s|unix_socket=.*||' .env.local
+echo "   -> DB → mysql://root@db:3306/${DB_NAME}"
+echo "   -> .env.local prêt !"
 
 # ============================================
-# 2. CONFIGURER LA BASE DE DONNÉES
+# 1. ATTENDRE MARIADB
 # ============================================
 echo ""
-echo "2/8 - Configuration de la base de données..."
-
-mysql --socket=/var/run/mysqld/mysqld.sock << EOF
--- Configurer le mot de passe root
-ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
-CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
-
--- Créer la base de données
-CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'localhost';
-GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'root'@'%';
-
-FLUSH PRIVILEGES;
-EOF
-
-echo "   -> Configuration terminée !"
-sleep 1
-
-# Arrêter MariaDB temporaire
-echo "   -> Arrêt du serveur temporaire..."
-mysqladmin --socket=/var/run/mysqld/mysqld.sock -u root -p${DB_ROOT_PASSWORD} shutdown
-wait $TEMP_MARIADB_PID 2>/dev/null || true
-
-echo "   -> Serveur arrêté, attente de 3 secondes..."
-sleep 3
-
-# ============================================
-# 3. DÉMARRER MARIADB EN MODE NORMAL
-# ============================================
-echo ""
-echo "3/8 - Démarrage de MariaDB en mode production..."
-
-# Démarrer MariaDB en mode normal
-mysqld_safe --user=mysql &
-MARIADB_PID=$!
-
-# Attendre que MariaDB soit prêt
-echo "   -> Attente du démarrage..."
-for i in {1..60}; do
-    if mysql -u root -p${DB_ROOT_PASSWORD} -e "SELECT 1" >/dev/null 2>&1; then
-        echo "   -> MariaDB démarré en mode production !"
-        break
-    fi
-    if [ $i -eq 60 ]; then
-        echo "ERREUR : MariaDB n'a pas démarré après 60 secondes"
-        exit 1
-    fi
-    sleep 1
-done
-
-sleep 3
-
-# ============================================
-# 4. VÉRIFIER LA CONNEXION SYMFONY
-# ============================================
-echo ""
-echo "4/8 - Test de connexion Symfony..."
-
-cd /var/www/html
-
-# Tester la connexion
-MAX_RETRY=3
+echo "1/9 - Attente MariaDB (db:3306)..."
+MAX_RETRY=30
 for i in $(seq 1 $MAX_RETRY); do
-    if php bin/console dbal:run-sql "SELECT 1" >/dev/null 2>&1; then
-        echo "   -> Connexion Symfony OK !"
+    if mysqladmin ping -h db -P 3306 -u root -p${DB_ROOT_PASSWORD} --silent 2>/dev/null; then
+        echo "   -> MariaDB OK !"
         break
     fi
-    if [ $i -eq $MAX_RETRY ]; then
-        echo "ERREUR : Symfony ne peut pas se connecter à MariaDB"
-        exit 1
-    fi
-    echo "   -> Tentative $i/$MAX_RETRY échouée..."
+    [ $i -eq $MAX_RETRY ] && { echo "ERREUR MariaDB timeout"; exit 1; }
+    echo "   -> Tentative $i/${MAX_RETRY}..."
     sleep 3
 done
 
 # ============================================
-# 5. LANCER LES MIGRATIONS DOCTRINE
+# 2. CONNEXION SYMFONY
 # ============================================
 echo ""
-echo "5/8 - Exécution des migrations Doctrine..."
-
-php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1 | grep -v -i "deprecated\|user deprecated" || true
-
-echo "   -> Migrations terminées !"
+echo "2/9 - Test connexion Symfony..."
+MAX_RETRY=3
+for i in $(seq 1 $MAX_RETRY); do
+    if php bin/console dbal:run-sql "SELECT 1" >/dev/null 2>&1; then
+        echo "   -> Symfony connecté !"
+        break
+    fi
+    [ $i -eq $MAX_RETRY ] && { echo "ERREUR Symfony/DB"; exit 1; }
+    sleep 3
+done
 
 # ============================================
-# 6. CHARGER LES FIXTURES
+# 3. MIGRATIONS
 # ============================================
 echo ""
-echo "6/8 - Chargement des fixtures..."
+echo "3/9 - Migrations Doctrine..."
+php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1 | grep -v -i "deprecated" || true
+echo "   -> Migrations OK"
 
-# Vérifier si des données existent déjà
-TABLES_COUNT=$(mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -sNe "SHOW TABLES;" 2>/dev/null | wc -l || echo "0")
-USER_COUNT=0
-
-if [ "$TABLES_COUNT" -gt "0" ]; then
-    USER_COUNT=$(mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -sNe "SELECT COUNT(*) FROM user;" 2>/dev/null || echo "0")
-fi
-
-if [ "$USER_COUNT" -eq "0" ]; then
-    echo "   -> Aucune donnée trouvée, chargement des fixtures..."
-
-    # Charger les fixtures (avec --no-interaction pour éviter la confirmation)
-    php bin/console doctrine:fixtures:load --no-interaction 2>&1 | grep -v -i "deprecated\|user deprecated" || true
-
-    echo "   -> Fixtures chargées avec succès !"
+# ============================================
+# 4. ADMIN (admin/123Azerty)
+# ============================================
+echo ""
+echo "4/9 - Admin auto (si absent)..."
+ADMIN_EXISTS=$(php bin/console dbal:run-sql "SELECT COUNT(*) FROM \`user\` WHERE username='admin'" -q 2>/dev/null || echo 0)
+if [ "$ADMIN_EXISTS" -eq 0 ]; then
+    php bin/console dbal:run-sql "
+        INSERT INTO \`user\` (username, email, roles, password, created_at) VALUES
+        ('admin', 'admin@musee.fr', '[\"ROLE_ADMIN\"]', '\$2y\$13\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NOW())
+        ON DUPLICATE KEY UPDATE username=username;
+    " 2>/dev/null || true
+    echo "   -> ✅ Admin créé (admin / 123Azerty)"
 else
-    echo "   -> Données déjà présentes ($USER_COUNT utilisateurs), skip des fixtures"
+    echo "   -> Admin existe"
 fi
 
 # ============================================
-# 7. COMPILER LES ASSETS (CSS/JS)
+# 5. ASSETS SYMFONY (importmap + compile)
 # ============================================
 echo ""
-echo "7/8 - Compilation des assets..."
+echo "5/9 - Assets Symfony..."
+php bin/console importmap:install --force || true
+php bin/console asset-map:compile || true
+echo "   -> Importmap + assets compilés"
 
-# Vérifier si AssetMapper est configuré
-if php bin/console list | grep -q "importmap"; then
-    echo "   -> AssetMapper détecté, compilation..."
-    php bin/console importmap:install || true
-    php bin/console asset-map:compile || true
-    echo "   -> Assets compilés !"
+# ============================================
+# 6. CACHE (clear + warmup)
+# ============================================
+echo ""
+echo "6/9 - Cache Symfony..."
+php bin/console cache:clear --env=prod --no-warmup || true
+php bin/console cache:warmup --env=prod || true
+echo "   -> Cache nettoyé + réchauffé"
+
+# ============================================
+# 7. VÉRIFIER BUILD REACT
+# ============================================
+echo ""
+echo "7/9 - Vérification React build..."
+if [ -d "/var/www/react/dist" ] && [ "$(ls -A /var/www/react/dist 2>/dev/null)" ]; then
+    REACT_SIZE=$(du -sh /var/www/react/dist 2>/dev/null | cut -f1 || echo "0")
+    echo "   -> ✅ React OK ($REACT_SIZE) → http://localhost"
 else
-    echo "   -> Pas d'AssetMapper configuré, skip"
-fi
-
-# ============================================
-# 8. CORRIGER LES PERMISSIONS
-# ============================================
-echo ""
-echo "8/8 - Correction des permissions..."
-
-# S'assurer que www-data possède tout
-chown -R www-data:www-data /var/www/html/var
-chmod -R 777 /var/www/html/var
-
-# Permissions pour les assets
-chown -R www-data:www-data /var/www/html/public
-chmod -R 775 /var/www/html/public
-
-echo "   -> Permissions corrigées !"
-
-# ============================================
-# 9. DÉMARRER APACHE
-# ============================================
-echo ""
-echo "================================================"
-echo " ✅ Application prête !"
-echo "================================================"
-echo ""
-echo " 🌐 Front React  : http://localhost"
-echo " 🔧 API Symfony  : http://localhost:8080"
-echo ""
-echo " 👤 Admin créé via fixtures"
-echo ""
-echo "================================================"
-echo ""
-
-exec apache2-foreground
+    echo "   -> ⚠️ React manquant → http
