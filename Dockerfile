@@ -3,9 +3,10 @@ FROM php:8.4-apache
 ARG REACT_REPO_URL
 ARG REACT_BRANCH=master
 
-# INSTALL TOOLS
+# INSTALL TOOLS (avec netcat-openbsd ajouté)
 RUN apt-get update && apt-get install -y \
-    git unzip curl wget libicu-dev libzip-dev libpng-dev libjpeg-dev libfreetype6-dev \
+    git unzip curl wget netcat-openbsd \
+    libicu-dev libzip-dev libpng-dev libjpeg-dev libfreetype6-dev \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -35,7 +36,7 @@ COPY . /var/www/html
 COPY .env.docker /var/www/html/.env.docker
 RUN composer dump-autoload --optimize --classmap-authoritative
 
-# ✅ PERMISSIONS CORRIGÉES (syntaxe bash explicite)
+# PERMISSIONS
 RUN mkdir -p var/cache var/log var/sessions public/uploads \
     && chown -R www-data:www-data var public/uploads \
     && chmod -R 777 var \
