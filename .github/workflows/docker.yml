@@ -1,4 +1,4 @@
-name: Build & Push Docker Image
+name: Build & Push Docker Image (Multi-conteneurs)
 
 on:
   push:
@@ -13,25 +13,35 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Login Docker Hub
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build de l'image Docker avec React
-        run: |
-          docker build \
-            --build-arg REACT_REPO_URL="https://github.com/Soifiaouir/AppMuseeTransmitionsReact.git" \
-            --build-arg REACT_BRANCH=master \
-            -t ${{ secrets.DOCKER_REPOSITORY }}:latest \
-            .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Push de l'image sur Docker Hub
-        run: |
-          docker push ${{ secrets.DOCKER_REPOSITORY }}:latest
+      - name: Build et Push image APP (Symfony + React)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_REPOSITORY }}:latest
+          build-args: |
+            REACT_REPO_URL=https://github.com/Soifiaouir/AppMuseeTransmitionsReact.git
+            REACT_BRANCH=master
 
-      - name: Confirmation de publication
+      - name: Test local (optionnel)
+        run: |
+          echo "Test de l'image..."
+          docker run --rm ${{ secrets.DOCKER_REPOSITORY }}:latest php bin/console --version
+
+      - name: Confirmation
         run: |
           echo "================================================"
-          echo "Image Docker publiee avec succes !"
-          echo "Repository: ${{ secrets.DOCKER_REPOSITORY }}"
-          echo "Tag: latest"
+          echo "Image APP publiée !"
+          echo "Repository : ${{ secrets.DOCKER_REPOSITORY }}:latest"
+          echo "Frontend   : http://localhost (port 80)"
+          echo "API Symfony: http://localhost:8080"
+          echo "Utiliser avec docker-compose.yml (DB séparée)"
           echo "================================================"
