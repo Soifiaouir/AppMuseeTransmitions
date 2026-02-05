@@ -123,7 +123,7 @@ final class MainController extends AbstractController
         ]);
     }
 
-    #[Route('/theme/edit/{id}', name: 'edit_theme', requirements: ['id' => '\d+'], methods: ['PUT'])]
+    #[Route('/theme/edit/{id}', name: 'edit_theme', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function edit(Theme $theme, Request $request, MediaUploader $uploader): Response
     {
         if ($theme->isArchived()) {
@@ -214,7 +214,7 @@ final class MainController extends AbstractController
     /**
      * Seul un admin est autorisé à supprimer un thème
      */
-    #[Route('/theme/remove/{id}', name: 'remove_theme', requirements: ['id' => '\d+'], methods: ['DELETE'])]
+    #[Route('/theme/remove/{id}', name: 'remove_theme', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function remove(Theme $theme): Response
     {
         $this->em->remove($theme);
@@ -223,7 +223,7 @@ final class MainController extends AbstractController
         return $this->redirectToRoute('home');
     }
 
-    #[Route('/theme/archive/{id}', name: 'archive_theme', requirements: ['id' => '\d+'], methods: ['PUT'])]
+    #[Route('/theme/archive/{id}', name: 'archive_theme', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function archive(Theme $theme): Response
     {
         // Le ThemeArchiveListener va automatiquement archiver les cartes et médias liés
@@ -235,7 +235,7 @@ final class MainController extends AbstractController
         return $this->redirectToRoute('admin_dashboard');
     }
 
-    #[Route('/theme/un_archive/{id}', name: 'unarchive_theme', requirements: ['id' => '\d+'], methods: ['PUT'])]
+    #[Route('/theme/un_archive/{id}', name: 'unarchive_theme', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function unarchive(Theme $theme): Response
     {
         // Le ThemeArchiveListener va automatiquement désarchiver les cartes et médias liés

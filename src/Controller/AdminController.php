@@ -91,7 +91,7 @@ final class AdminController extends AbstractController
     /**
      * @throws RandomException
      */
-    #[Route('/user/{id}/reset_password', name: 'reset_password', requirements: ['id' => '\d+'], methods: ['POST', 'PUT'])]
+    #[Route('/user/{id}/reset_password', name: 'reset_password', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function reset_password(int $id): Response
     {
         $user = $this->userRepository->find($id);
@@ -138,7 +138,7 @@ final class AdminController extends AbstractController
         return $password;
     }
 
-    #[Route('/user/{id}/remove', name: 'remove_user', requirements:['id' => '\d+'], methods: ['DELETE'])]
+    #[Route('/user/{id}/remove', name: 'remove_user', requirements:['id' => '\d+'], methods: ['POST'])]
     public function removeUser(User $user): Response
     {
         $this->em->remove($user);

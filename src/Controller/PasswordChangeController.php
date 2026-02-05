@@ -26,7 +26,7 @@ class PasswordChangeController extends AbstractController
     }
 
     #[IsGranted('ROLE_USER')]
-    #[Route('/change_password', name: 'change_password', methods: ['POST'])]
+    #[Route('/change_password', name: 'change_password', methods: ['POST', 'GET'])]
     public function changePassword(Request $request): Response
     {
         /** @var User $user */
@@ -63,7 +63,7 @@ class PasswordChangeController extends AbstractController
         ]);
     }
 
-    #[Route('/password_reset_ask', name: 'password_reset_ask', methods: ['POST'])]
+    #[Route('/password_reset_ask', name: 'password_reset_ask', methods: ['POST','GET'])]
     public function resetPasswordAsk(Request $request): Response
     {
         $formResetAsk = $this->createForm(ResetPasswordAskType::class);

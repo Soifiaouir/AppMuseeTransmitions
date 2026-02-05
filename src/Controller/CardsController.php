@@ -62,7 +62,7 @@ final class CardsController extends AbstractController
         ]);
     }
 
-    #[Route('/edit/{id}', name: 'edit', requirements: ['id' => '\d+'], methods: ['PUT'])]
+    #[Route('/edit/{id}', name: 'edit', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function edit(Request $request, int $id): Response
     {
         $card = $this->cardRepository->find($id);
@@ -94,7 +94,7 @@ final class CardsController extends AbstractController
         ]);
     }
 
-    #[Route('/delete/{id}', name: 'delete', requirements: ['id' => '\d+'], methods: ['DELETE'])]
+    #[Route('/delete/{id}', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function delete(int $id): Response
     {
         $card = $this->cardRepository->find($id);
