@@ -44,3 +44,9 @@ logs/
 *~
 .DS_Store
 ###< IDE ###
+
+###> uploads ###
+/public/uploads/
+/public/uploads/*
+!/public/uploads/.gitignore
+###< uploads ###
