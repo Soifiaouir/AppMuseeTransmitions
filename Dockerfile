@@ -2,6 +2,8 @@ FROM php:8.4-apache
 
 ARG REACT_REPO_URL
 ARG REACT_BRANCH=master
+ARG API_USERNAME=admin
+ARG API_PASSWORD=password
 
 # INSTALL TOOLS (avec netcat-openbsd ajoute)
 RUN apt-get update && apt-get install -y \
@@ -26,7 +28,7 @@ RUN a2enmod rewrite headers proxy proxy_http
 COPY docker/apache/back.conf /etc/apache2/sites-available/back.conf
 COPY docker/apache/front.conf /etc/apache2/sites-available/front.conf
 RUN a2dissite 000-default.conf && a2ensite back.conf front.conf
-RUN printf "Listen 80\nListen 8080\n" > /etc/apache2/ports.conf
+RUN echo "Listen 80\nListen 8080" > /etc/apache2/ports.conf
 
 # SYMFONY
 WORKDIR /var/www/html
@@ -49,11 +51,18 @@ RUN php bin/console importmap:install || true \
     && php bin/console cache:clear --env=prod --no-warmup || true \
     && php bin/console cache:warmup --env=prod || true
 
-# REACT BUILD - CORRIGE
+# REACT BUILD - AVEC SECRETS
 RUN if [ -n "$REACT_REPO_URL" ]; then \
         echo "Clonage du repo React : $REACT_REPO_URL"; \
         git clone --branch ${REACT_BRANCH} --depth 1 ${REACT_REPO_URL} /tmp/react-app && \
         cd /tmp/react-app && \
+        echo "Creation du .env.production avec secrets..."; \
+        echo "VITE_API_URL=http://localhost:8080/api" > .env.production && \
+        echo "VITE_API_UPLOAD=http://localhost:8080/uploads/media" >> .env.production && \
+        echo "VITE_API_USERNAME=${API_USERNAME}" >> .env.production && \
+        echo "VITE_API_PASSWORD=${API_PASSWORD}" >> .env.production && \
+        echo "Contenu du .env.production :"; \
+        cat .env.production; \
         echo "Installation npm..."; \
         npm install && \
         echo "Build React..."; \
