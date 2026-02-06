@@ -55,9 +55,11 @@ class Card
 
     /**
      * Images de fond de la carte (relation ManyToMany)
+     * Card est maintenant le côté PROPRIÉTAIRE de la relation
      * @var Collection<int, Media>
      */
-    #[ORM\ManyToMany(targetEntity: Media::class, mappedBy: 'cards')]
+    #[ORM\ManyToMany(targetEntity: Media::class, inversedBy: 'cards')]
+    #[ORM\JoinTable(name: 'card_media')]
     #[Groups(['card:read', 'theme:read'])]
     private Collection $medias;
 
@@ -69,12 +71,12 @@ class Card
     private Collection $moreInfos;
 
     #[ORM\ManyToOne(targetEntity: Color::class)]
-    #[ORM\JoinColumn(name: "text_color_id", nullable: true)]  // ← ENLÈVE unique: true
+    #[ORM\JoinColumn(name: "text_color_id", nullable: true)]
     #[Groups(['card:read', 'theme:read'])]
     private ?Color $textColor = null;
 
     #[ORM\ManyToOne(targetEntity: Color::class)]
-    #[ORM\JoinColumn(name: "background_color_id", nullable: true)]  // ← ENLÈVE OneToOne + unique: true
+    #[ORM\JoinColumn(name: "background_color_id", nullable: true)]
     #[Groups(['card:read', 'theme:read'])]
     private ?Color $backgroundColor = null;
 
@@ -86,7 +88,6 @@ class Card
         $this->medias = new ArrayCollection();
         $this->moreInfos = new ArrayCollection();
         $this->archived = false;
-
     }
 
     public function getId(): ?int
@@ -143,7 +144,6 @@ class Card
     {
         if (!$this->medias->contains($media)) {
             $this->medias->add($media);
-            $media->addCard($this);
         }
 
         return $this;
@@ -151,9 +151,7 @@ class Card
 
     public function removeMedia(Media $media): static
     {
-        if ($this->medias->removeElement($media)) {
-            $media->removeCard($this);
-        }
+        $this->medias->removeElement($media);
 
         return $this;
     }
@@ -185,7 +183,6 @@ class Card
      */
     #[Groups(['card:read'])]
     public function getMoreInfos(): Collection
-
     {
         return $this->moreInfos;
     }
@@ -223,12 +220,12 @@ class Card
         return $this;
     }
 
-    public function getBackgroundColor(): ?Color  // ← CORRIGÉ : C majuscule
+    public function getBackgroundColor(): ?Color
     {
         return $this->backgroundColor;
     }
 
-    public function setBackgroundColor(?Color $backgroundColor): static  // ← CORRIGÉ : C majuscule
+    public function setBackgroundColor(?Color $backgroundColor): static
     {
         $this->backgroundColor = $backgroundColor;
 

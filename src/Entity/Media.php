@@ -23,7 +23,6 @@ use Symfony\Component\Validator\Constraints as Assert;
 )]
 class Media
 {
-
     public const MEDIA_PER_PAGE = 10;
 
     #[ORM\Id]
@@ -59,10 +58,11 @@ class Media
     private ?\DateTimeImmutable $uploadedAt = null;
 
     /**
+     * Cards qui utilisent ce média
+     * Media est maintenant le côté INVERSE de la relation
      * @var Collection<int, Card>
      */
-    #[ORM\ManyToMany(targetEntity: Card::class, inversedBy: 'medias')]
-    #[ORM\JoinTable(name: 'media_card')]
+    #[ORM\ManyToMany(targetEntity: Card::class, mappedBy: 'medias')]
     #[Groups(['media:read'])]
     private Collection $cards;
 
@@ -83,7 +83,6 @@ class Media
         $this->themes = new ArrayCollection();
         $this->uploadedAt = new \DateTimeImmutable();
         $this->archived = false;
-
     }
 
     public function getId(): ?int
@@ -175,6 +174,7 @@ class Media
     {
         if (!$this->cards->contains($card)) {
             $this->cards->add($card);
+            $card->addMedia($this);
         }
 
         return $this;
@@ -182,7 +182,9 @@ class Media
 
     public function removeCard(Card $card): static
     {
-        $this->cards->removeElement($card);
+        if ($this->cards->removeElement($card)) {
+            $card->removeMedia($this);
+        }
 
         return $this;
     }

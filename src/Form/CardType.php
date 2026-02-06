@@ -29,6 +29,37 @@ class CardType extends AbstractType
     ) {
     }
 
+    /**
+     * Ajoute l'écouteur pour filtrer dynamiquement les images selon le thème
+     */
+    private function addMediaFilterListener(FormBuilderInterface $builder): void
+    {
+        $mediaRepository = $this->mediaRepository;
+
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use ($mediaRepository) {
+            /** @var Card|null $card */
+            $card = $event->getData();
+            $form = $event->getForm();
+
+            // Calculer le thème et récupérer les images filtrées
+            $themeId = $card?->getTheme()?->getId();
+            $images = $mediaRepository->findImagesByThemeForForm($themeId);
+
+            $label = $themeId
+                ? sprintf('Images du thème "%s" (%d disponibles)', $card->getTheme()->getName(), count($images))
+                : sprintf('Images disponibles (%d)', count($images));
+
+            $form->add('medias', EntityType::class, [
+                'class' => Media::class,
+                'choices' => $images,
+                'multiple' => true,
+                'choice_label' => 'userGivenName',
+                'label' => $label,
+                'required' => false,
+                'attr' => ['class' => 'form-control']
+            ]);
+        });
+    }
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -109,38 +140,6 @@ class CardType extends AbstractType
 
         // Écouteur d'événements : filtre dynamique des images
         $this->addMediaFilterListener($builder);
-    }
-
-    /**
-     * Ajoute l'écouteur pour filtrer dynamiquement les images selon le thème
-     */
-    private function addMediaFilterListener(FormBuilderInterface $builder): void
-    {
-        $mediaRepository = $this->mediaRepository;
-
-        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use ($mediaRepository) {
-            /** @var Card|null $card */
-            $card = $event->getData();
-            $form = $event->getForm();
-
-            // Calculer le thème et récupérer les images filtrées
-            $themeId = $card?->getTheme()?->getId();
-            $images = $mediaRepository->findImagesByThemeForForm($themeId);
-
-            $label = $themeId
-                ? sprintf('Images du thème "%s" (%d disponibles)', $card->getTheme()->getName(), count($images))
-                : sprintf('Images disponibles (%d)', count($images));
-
-            $form->add('medias', EntityType::class, [
-                'class' => Media::class,
-                'choices' => $images,
-                'multiple' => true,
-                'choice_label' => 'userGivenName',
-                'label' => $label,
-                'required' => false,
-                'attr' => ['class' => 'form-control']
-            ]);
-        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void
