@@ -24,7 +24,6 @@
 .env
 .env.local
 .env.prod
-.env.docker
 # Le fichier avec les vraies valeurs pour le NUC
 .env.nuc
 
@@ -50,3 +49,5 @@ logs/
 /public/uploads/*
 !/public/uploads/.gitignore
 ###< uploads ###
+
+.docker-compose.yml
