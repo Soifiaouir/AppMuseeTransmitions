@@ -2,10 +2,10 @@ FROM php:8.4-apache
 
 ARG REACT_REPO_URL
 ARG REACT_BRANCH=master
-ARG API_USERNAME=admin
-ARG API_PASSWORD=password
+ARG VITE_API_USERNAME
+ARG VITE_API_PASSWORD
 
-# INSTALL TOOLS (avec netcat-openbsd ajoute)
+# INSTALL TOOLS (avec netcat-openbsd ajouté)
 RUN apt-get update && apt-get install -y \
     git unzip curl wget netcat-openbsd \
     libicu-dev libzip-dev libpng-dev libjpeg-dev libfreetype6-dev \
@@ -28,7 +28,7 @@ RUN a2enmod rewrite headers proxy proxy_http
 COPY docker/apache/back.conf /etc/apache2/sites-available/back.conf
 COPY docker/apache/front.conf /etc/apache2/sites-available/front.conf
 RUN a2dissite 000-default.conf && a2ensite back.conf front.conf
-RUN echo "Listen 80\nListen 8080" > /etc/apache2/ports.conf
+RUN echo "Listen 80\nListen 8081" > /etc/apache2/ports.conf
 
 # SYMFONY
 WORKDIR /var/www/html
@@ -51,18 +51,18 @@ RUN php bin/console importmap:install || true \
     && php bin/console cache:clear --env=prod --no-warmup || true \
     && php bin/console cache:warmup --env=prod || true
 
-# REACT BUILD - AVEC SECRETS
+# REACT BUILD - AVEC SECRETS depuis ARG
 RUN if [ -n "$REACT_REPO_URL" ]; then \
-        echo "Clonage du repo React : $REACT_REPO_URL"; \
+        echo "🚀 Clonage du repo React : $REACT_REPO_URL"; \
         git clone --branch ${REACT_BRANCH} --depth 1 ${REACT_REPO_URL} /tmp/react-app && \
         cd /tmp/react-app && \
-        echo "Creation du .env.production avec secrets..."; \
-        echo "VITE_API_URL=http://localhost:8080/api" > .env.production && \
-        echo "VITE_API_UPLOAD=http://localhost:8080/uploads/media" >> .env.production && \
-        echo "VITE_API_USERNAME=${API_USERNAME}" >> .env.production && \
-        echo "VITE_API_PASSWORD=${API_PASSWORD}" >> .env.production && \
-        echo "Contenu du .env.production :"; \
-        cat .env.production; \
+        echo "🔐 Création du .env.prod avec secrets..."; \
+        echo "VITE_API_URL=http://localhost:8081/api" > .env.prod && \
+        echo "VITE_API_UPLOAD=http://localhost:8081/uploads/media" >> .env.prod && \
+        echo "VITE_API_USERNAME=${VITE_API_USERNAME}" >> .env.prod && \
+        echo "VITE_API_PASSWORD=${VITE_API_PASSWORD}" >> .env.prod && \
+        echo "Contenu du .env.prod :"; \
+        cat .env.prod; \
         echo "Installation npm..."; \
         npm install && \
         echo "Build React..."; \
@@ -70,12 +70,12 @@ RUN if [ -n "$REACT_REPO_URL" ]; then \
         echo "Copie vers /var/www/react/dist/..."; \
         mkdir -p /var/www/react && \
         cp -r dist /var/www/react/ && \
-        echo "React build termine !"; \
+        echo "React build terminé !"; \
         ls -la /var/www/react/dist/ && \
         cd / && rm -rf /tmp/react-app; \
     else \
-        echo "REACT_REPO_URL non defini - Skip du build React"; \
-        mkdir -p /var/www/react && echo "<h1>React non configure</h1>" > /var/www/react/index.html; \
+        echo "REACT_REPO_URL non défini - Skip du build React"; \
+        mkdir -p /var/www/react && echo "<h1>React non configuré</h1>" > /var/www/react/index.html; \
     fi
 
 RUN chown -R www-data:www-data /var/www/react
@@ -84,5 +84,5 @@ RUN chown -R www-data:www-data /var/www/react
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-EXPOSE 80 8080
+EXPOSE 80 8081
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

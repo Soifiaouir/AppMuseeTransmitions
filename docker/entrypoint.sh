@@ -2,49 +2,47 @@
 set -e
 
 echo "================================================"
-echo "Démarrage du conteneur APP (Symfony + React)"
+echo "Demarrage du conteneur APP (Symfony + React)"
 echo "================================================"
 
-# ============================================
-# 0. PRÉPARER LES VARIABLES D'ENVIRONNEMENT
-# ============================================
-
-# Valeurs par défaut si non fournies
+# Preparer les variables d'environnement
 export DB_NAME=${DB_NAME:-museeTransmitions}
-export DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-vaillanT1959}
-export APP_SECRET=${APP_SECRET:-change-me-in-production}
-export JWT_PASSPHRASE=${JWT_PASSPHRASE:-change-me-too}
+export DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+export APP_SECRET=${APP_SECRET}
+export JWT_PASSPHRASE=${JWT_PASSPHRASE}
+export VITE_API_USERNAME=${VITE_API_USERNAME}
+export VITE_API_PASSWORD=${VITE_API_PASSWORD}
 
 cd /var/www/html
 
 echo "0/7 - Configuration des variables d'environnement..."
 
-# Remplacer les placeholders dans .env.docker pour créer .env.local
+# Remplacer les placeholders dans .env.docker pour creer .env.local
 sed -e "s|__DB_NAME__|${DB_NAME}|g" \
     -e "s|__DB_ROOT_PASSWORD__|${DB_ROOT_PASSWORD}|g" \
     -e "s|__APP_SECRET__|${APP_SECRET}|g" \
     -e "s|__JWT_PASSPHRASE__|${JWT_PASSPHRASE}|g" \
     .env.docker > .env.local
 
-echo "   -> DB → mysql://root@db:3306/${DB_NAME}"
-echo "   -> .env.local prêt !"
+echo "   -> DB -> mysql://root@db:3306/${DB_NAME}"
+echo "   -> APP_SECRET : ${APP_SECRET:0:8}..."
+echo "   -> JWT_PASSPHRASE : ${JWT_PASSPHRASE:0:8}..."
+echo "   -> VITE_API_USERNAME : ${VITE_API_USERNAME}"
+echo "   -> .env.local pret !"
 
-# ============================================
-# 1. ATTENDRE QUE MARIADB SOIT PRÊT
-# ============================================
+# Attendre que MariaDB soit pret
 echo ""
 echo "1/7 - Attente MariaDB (db:3306)..."
 
 MAX_RETRY=30
 for i in $(seq 1 $MAX_RETRY); do
-    # Utiliser nc (netcat) pour tester si le port 3306 répond
     if nc -z db 3306 2>/dev/null; then
         echo "   -> MariaDB accessible !"
         break
     fi
 
     if [ $i -eq $MAX_RETRY ]; then
-        echo "ERREUR : MariaDB n'est pas accessible après 30 tentatives"
+        echo "ERREUR : MariaDB n'est pas accessible apres 30 tentatives"
         exit 1
     fi
 
@@ -52,14 +50,11 @@ for i in $(seq 1 $MAX_RETRY); do
     sleep 3
 done
 
-# Attendre 2 secondes supplémentaires pour que MariaDB soit totalement prêt
 sleep 2
 
-# ============================================
-# 2. VÉRIFIER LA CONNEXION SYMFONY À LA DB
-# ============================================
+# Verifier la connexion Symfony a la DB
 echo ""
-echo "2/7 - Test de connexion Symfony → MariaDB..."
+echo "2/7 - Test de connexion Symfony -> MariaDB..."
 
 MAX_RETRY=5
 for i in $(seq 1 $MAX_RETRY); do
@@ -69,140 +64,97 @@ for i in $(seq 1 $MAX_RETRY); do
     fi
 
     if [ $i -eq $MAX_RETRY ]; then
-        echo "ERREUR : Symfony ne peut pas se connecter à MariaDB"
-        echo "Vérifiez DATABASE_URL dans .env.local"
+        echo "ERREUR : Symfony ne peut pas se connecter a MariaDB"
+        echo "Verifiez DATABASE_URL dans .env.local"
         exit 1
     fi
 
-    echo "   -> Tentative $i/$MAX_RETRY échouée, réessai..."
+    echo "   -> Tentative $i/$MAX_RETRY echouee, reessai..."
     sleep 3
 done
 
-# ============================================
-# 3. LANCER LES MIGRATIONS DOCTRINE
-# ============================================
+# Lancer les migrations Doctrine
 echo ""
-echo "3/7 - Exécution des migrations Doctrine..."
+echo "3/7 - Execution des migrations Doctrine..."
 
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1 | grep -v -i "deprecated\|user deprecated" || true
 
-echo "   -> Migrations terminées !"
+echo "   -> Migrations terminees !"
 
-# ============================================
-# 4. CHARGER LES FIXTURES (si nécessaire)
-# ============================================
-echo ""
-echo "4/7 - Vérification des données..."
-
-# Compter les utilisateurs dans la DB
-USER_COUNT=$(php bin/console dbal:run-sql "SELECT COUNT(*) as count FROM user" 2>/dev/null | grep -oP '\d+' | tail -1 || echo "0")
-
-if [ "$USER_COUNT" -eq "0" ]; then
-    echo "   -> Aucun utilisateur trouvé, chargement des fixtures..."
-
-    # Charger les fixtures
-    if [ -f "bin/console" ] && php bin/console list | grep -q "doctrine:fixtures:load"; then
-        php bin/console doctrine:fixtures:load --no-interaction 2>&1 | grep -v -i "deprecated\|user deprecated" || true
-        echo "   -> Fixtures chargées avec succès !"
-    else
-        echo "   -> Fixtures non disponibles, création admin manuel..."
-
-        # Créer un admin par défaut (admin / 123Azerty)
-        php bin/console dbal:run-sql "
-            INSERT INTO user (username, email, roles, password, created_at) VALUES
-            ('admin', 'admin@musee.fr', '[\"ROLE_ADMIN\"]', '\$2y\$13\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NOW())
-            ON DUPLICATE KEY UPDATE username=username;
-        " 2>/dev/null || true
-
-        echo "   -> Admin créé (admin / 123Azerty)"
-    fi
-else
-    echo "   -> Données existantes ($USER_COUNT utilisateurs), skip des fixtures"
-fi
-
-# ============================================
-# 5. COMPILER LES ASSETS (AssetMapper)
-# ============================================
+# Compiler les assets (AssetMapper)
 echo ""
 echo "5/7 - Compilation des assets..."
 
-# Vérifier si AssetMapper est configuré
 if php bin/console list | grep -q "importmap"; then
-    echo "   -> AssetMapper détecté, installation..."
+    echo "   -> AssetMapper detecte, installation..."
     php bin/console importmap:install 2>&1 | grep -v -i "deprecated" || true
 
     echo "   -> Compilation des assets..."
-    php bin/console asset-map:compile 2>&1 | grep -v -i "deprecated" || true
+    php bin/console asset-map:compile  2>&1 | grep -v -i "deprecated" || true
 
-    echo "   -> Assets compilés !"
+    echo "   -> Assets compiles !"
 else
-    echo "   -> AssetMapper non configuré, skip"
+    echo "   -> AssetMapper non configure, skip"
 fi
 
-# ============================================
-# 6. NETTOYER ET RÉCHAUFFER LE CACHE
-# ============================================
+# Nettoyer et rechauffer le cache
 echo ""
 echo "6/7 - Gestion du cache Symfony..."
 
 echo "   -> Nettoyage du cache..."
 php bin/console cache:clear --env=prod --no-warmup 2>&1 | grep -v -i "deprecated" || true
 
-echo "   -> Réchauffage du cache..."
+echo "   -> Rechauffage du cache..."
 php bin/console cache:warmup --env=prod 2>&1 | grep -v -i "deprecated" || true
 
-echo "   -> Cache prêt !"
+echo "   -> Cache pret !"
 
-# ============================================
-# 7. CORRIGER LES PERMISSIONS
-# ============================================
+# Corriger les permissions
 echo ""
 echo "7/7 - Correction des permissions..."
 
-# Permissions pour var/ (cache, logs)
 if [ -d "var" ]; then
     chown -R www-data:www-data var/
     chmod -R 775 var/
 fi
 
-# Permissions pour public/ (assets, uploads)
 if [ -d "public" ]; then
     chown -R www-data:www-data public/
     chmod -R 775 public/
 fi
 
-echo "   -> Permissions corrigées !"
+echo "   -> Permissions corrigees !"
 
-# ============================================
-# 8. VÉRIFIER SI REACT EST PRÉSENT
-# ============================================
+# Verifier si React est present
 echo ""
-echo "Vérification React..."
+echo "Verification React..."
 
 if [ -d "/var/www/react/dist" ] && [ "$(ls -A /var/www/react/dist 2>/dev/null)" ]; then
     REACT_SIZE=$(du -sh /var/www/react/dist 2>/dev/null | cut -f1 || echo "inconnu")
-    echo "   -> ✅ React build trouvé ($REACT_SIZE)"
+    echo "   -> React build trouve ($REACT_SIZE)"
 else
-    echo "   -> ⚠️  React build manquant (vérifiez votre Dockerfile)"
+    echo "   -> React build manquant (verifiez votre Dockerfile)"
 fi
 
-# ============================================
-# AFFICHAGE FINAL + DÉMARRAGE APACHE
-# ============================================
+# Affichage final + demarrage Apache
 echo ""
 echo "================================================"
-echo " ✅APPLICATION PRÊTE !"
+echo " APPLICATION PRETE !"
 echo "================================================"
 echo ""
-echo " 🌐 Frontend React  : http://localhost"
-echo " 🔧 API Symfony     : http://localhost:8080/api"
-echo " 🗄️  Base de données : db:3306 (depuis conteneur)"
-echo "                      localhost:3307 (depuis PC)"
+echo " Frontend React  : http://localhost"
+echo " API Symfony     : http://localhost:8081"
+echo " Base de donnees : db:3306 (depuis conteneur)"
+echo "                   localhost:3307 (depuis PC)"
 echo ""
-echo " 👤 Compte admin    : admin / 123Azerty"
+echo " Secrets charges :"
+echo "    - APP_SECRET     : ${APP_SECRET:0:12}..."
+echo "    - JWT_PASSPHRASE : ${JWT_PASSPHRASE:0:12}..."
+echo "    - DB_PASSWORD    : ${DB_ROOT_PASSWORD:0:8}..."
+echo "    - API_USERNAME   : ${VITE_API_USERNAME}"
 echo ""
 echo "================================================"
 echo ""
 
-# Démarrer Apache en foreground (ne termine jamais)
+# Demarrer Apache en foreground
 exec apache2-foreground
