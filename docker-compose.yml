@@ -1,55 +1,63 @@
 services:
-  app:
-    image: ${DOCKER_REPOSITORY}:latest
-    container_name: musee_transmitions_app
+  db:
+    image: mariadb:11
+    container_name: musee_db
     restart: unless-stopped
-    
-    # Variables d'environnement SÉCURISÉES (lues depuis le fichier .env)
+
     environment:
-      # Configuration de l'application
-      APP_ENV: ${APP_ENV:-prod}
-      APP_SECRET: ${APP_SECRET}
-      
-      # Configuration de la base de données
-      DB_NAME: ${DB_NAME:-museeTransmitions}
-      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      
-      # URL de connexion Symfony (construite dynamiquement)
-      DATABASE_URL: "mysql://root:${DB_ROOT_PASSWORD}@127.0.0.1:3306/${DB_NAME:-museeTransmitions}?serverVersion=mariadb-11.8.0&charset=utf8mb4"
-      
-      # CORS
-      CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:-^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$}
-      
-      # JWT (si tu utilises l'authentification)
-      JWT_PASSPHRASE: ${JWT_PASSPHRASE}
-    
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: museeTransmitions
+      MARIADB_AUTO_UPGRADE: "1"
+
     ports:
-      # Front React sur port 80
-      - "${FRONT_PORT:-80}:80"
-      # API Symfony sur port 8080
-      - "${API_PORT:-8080}:8080"
-    
+      - "3307:3306"
+
     volumes:
-      # Persister les uploads (optionnel)
-      - uploads_data:/var/www/html/public/uploads
-      # Persister les données MariaDB
       - db_data:/var/lib/mysql
-      # Logs (optionnel, pour debug)
-      - ./logs:/var/www/html/var/log
-    
-    networks:
-      - app_network
-    
-    # Healthcheck pour vérifier que l'app fonctionne
+      - ./docker/mariadb/my.cnf:/etc/mysql/mariadb.conf.d/99-custom.cnf
+
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
       start_period: 60s
 
+    networks:
+      - musee_network
+
+  app:
+    image: soif/appmusee:latest
+    container_name: musee_app
+    restart: unless-stopped
+
+    environment:
+      APP_ENV: dev
+      APP_SECRET: ${APP_SECRET}
+      DB_NAME: museeTransmitions
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      JWT_PASSPHRASE: ${JWT_PASSPHRASE}
+      VITE_API_USERNAME: ${VITE_API_USERNAME}
+      VITE_API_PASSWORD: ${VITE_API_PASSWORD}
+      CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:-^https?://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?$}
+
+    ports:
+      - "80:80"      # Front React
+      - "8080:8080"  # API Symfony sur port 8080 (DEV)
+
+    volumes:
+      - uploads_data:/var/www/html/public/uploads
+      - ./logs:/var/www/html/var/log
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    networks:
+      - musee_network
+
 networks:
-  app_network:
+  musee_network:
     driver: bridge
 
 volumes:
