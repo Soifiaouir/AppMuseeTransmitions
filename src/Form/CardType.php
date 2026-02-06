@@ -101,7 +101,7 @@ class CardType extends AbstractType
 
             // Bouton submit
             ->add('submit', SubmitType::class, [
-                'label' => 'Créer la carte',
+                'label' => 'Valider',
                 'attr' => [
                     'class' => 'buttonCreate'
                 ]

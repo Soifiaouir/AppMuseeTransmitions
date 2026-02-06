@@ -26,7 +26,7 @@ RUN a2enmod rewrite headers proxy proxy_http
 COPY docker/apache/back.conf /etc/apache2/sites-available/back.conf
 COPY docker/apache/front.conf /etc/apache2/sites-available/front.conf
 RUN a2dissite 000-default.conf && a2ensite back.conf front.conf
-RUN echo "Listen 80\nListen 8080" > /etc/apache2/ports.conf
+RUN printf "Listen 80\nListen 8080\n" > /etc/apache2/ports.conf
 
 # SYMFONY
 WORKDIR /var/www/html

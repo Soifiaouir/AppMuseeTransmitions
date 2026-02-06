@@ -63,7 +63,7 @@ class PasswordChangeController extends AbstractController
         ]);
     }
 
-    #[Route('/password_reset_ask', name: 'password_reset_ask', methods: ['POST','GET'])]
+    #[Route('/password_reset_ask', name: 'password_reset_ask', methods: ['POST', 'GET'])]
     public function resetPasswordAsk(Request $request): Response
     {
         $formResetAsk = $this->createForm(ResetPasswordAskType::class);
@@ -73,11 +73,10 @@ class PasswordChangeController extends AbstractController
             $username = $formResetAsk->get('username')->getData();
             $user = $this->userRepository->findOneBy(['username' => $username]);
 
-            if($user) {
+            if ($user) {
                 // Pour forcer le changement de mot de passe
                 $user->setPasswordChange(true);
                 $this->em->flush();
-
                 $this->addFlash('success', 'Votre demande a bien été enregistrée. Un administrateur vous communiquera un nouveau mot de passe temporaire.');
             } else {
                 // Pour sécurité même message

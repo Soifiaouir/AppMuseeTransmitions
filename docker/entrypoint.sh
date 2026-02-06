@@ -129,7 +129,7 @@ echo "5/7 - Compilation des assets..."
 # Vérifier si AssetMapper est configuré
 if php bin/console list | grep -q "importmap"; then
     echo "   -> AssetMapper détecté, installation..."
-    php bin/console importmap:install --force 2>&1 | grep -v -i "deprecated" || true
+    php bin/console importmap:install 2>&1 | grep -v -i "deprecated" || true
 
     echo "   -> Compilation des assets..."
     php bin/console asset-map:compile 2>&1 | grep -v -i "deprecated" || true
