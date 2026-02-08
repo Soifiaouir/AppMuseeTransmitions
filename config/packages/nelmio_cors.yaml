@@ -1,25 +1,15 @@
 nelmio_cors:
     defaults:
         origin_regex: true
-        allow_origin: ['^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$']
+        allow_origin: ['%env(string:CORS_ALLOW_ORIGIN)%']
         allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
-        allow_headers: ['Content-Type', 'Authorization', 'X-Requested-With']
+        allow_headers: ['Content-Type', 'Authorization']
         expose_headers: ['Link', 'Content-Range']
         max_age: 3600
-        allow_credentials: true
-
     paths:
-        # Toutes les routes API (y compris /api/login_check)
         '^/api':
-            allow_origin: ['^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$']
-            allow_headers: ['Content-Type', 'Authorization', 'X-Requested-With']
+            allow_origin: ['%env(string:CORS_ALLOW_ORIGIN)%']
+            allow_headers: ['Content-Type', 'Authorization']
             allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
-            allow_credentials: true
             max_age: 3600
-
-        # Fichiers statiques (images, vidéos, etc.)
-        # Accessible en lecture par React pour afficher les médias
-        '^/uploads':
-            allow_origin: ['*']
-            allow_methods: ['GET', 'OPTIONS']
-            max_age: 3600
+        '^/media': ~
