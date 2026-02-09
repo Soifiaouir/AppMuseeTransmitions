@@ -23,7 +23,7 @@ sed -e "s|__DB_NAME__|${DB_NAME}|g" \
     -e "s|__DB_ROOT_PASSWORD__|${DB_ROOT_PASSWORD}|g" \
     -e "s|__APP_SECRET__|${APP_SECRET}|g" \
     -e "s|__JWT_PASSPHRASE__|${JWT_PASSPHRASE}|g" \
-    .env.docker > .env.local
+    .env.docker > .env
 
 echo "   -> DB -> mysql://root@db:3306/${DB_NAME}"
 echo "   -> APP_SECRET : ${APP_SECRET:0:8}..."
@@ -67,8 +67,8 @@ for i in $(seq 1 $MAX_RETRY); do
 
     if [ $i -eq $MAX_RETRY ]; then
         echo "ERREUR : Symfony ne peut pas se connecter a MariaDB"
-        echo "Verifiez DATABASE_URL dans .env.local"
-        cat .env.local | grep DATABASE_URL
+        echo "Verifiez DATABASE_URL dans .env"
+        cat .env | grep DATABASE_URL
         exit 1
     fi
 

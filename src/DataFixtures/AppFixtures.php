@@ -31,8 +31,8 @@ class AppFixtures extends Fixture
         $userAdmin->setUsername('admin')
             ->setPassword($this->userPasswordHasher->hashPassword($userAdmin, 'admin'))
             ->setRoles(['ROLE_ADMIN'])
-            ->setPasswordChange(false) // Admin n'est pas forcé
-            ->setPasswordChangeDate(new \DateTime()); // Date de dernier changement
+            ->setPasswordChange(false)
+            ->setPasswordChangeDate(new \DateTime());
 
         $manager->persist($userAdmin);
 
