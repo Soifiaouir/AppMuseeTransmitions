@@ -37,7 +37,6 @@ class MediaUploader
             $fileSize,
             $extension,
         );
-
         return $duplicate !== null;
     }
 
@@ -106,7 +105,7 @@ class MediaUploader
                 return $type;
             }
         }
-        // 2. Fallback : deviner le type à partir du contenu
+        // 2.deviner le type à partir du contenu
         $guesser = new MimeTypes();
         $guessedTypes = $guesser->guessMimeTypes($file->getPathname());
 
