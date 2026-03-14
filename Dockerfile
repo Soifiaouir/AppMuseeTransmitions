@@ -4,6 +4,8 @@ ARG REACT_REPO_URL
 ARG REACT_BRANCH=master
 ARG VITE_API_USERNAME
 ARG VITE_API_PASSWORD
+ARG VITE_API_URL
+ARG VITE_API_UPLOAD
 
 # INSTALL TOOLS (avec netcat-openbsd ajouté)
 RUN apt-get update && apt-get install -y \
