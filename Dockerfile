@@ -2,12 +2,12 @@ FROM php:8.4-apache
 
 ARG REACT_REPO_URL
 ARG REACT_BRANCH=master
-ARG VITE_API_USERNAME
-ARG VITE_API_PASSWORD
 ARG VITE_API_URL
 ARG VITE_API_UPLOAD
+ARG VITE_API_USERNAME
+ARG VITE_API_PASSWORD
 
-# INSTALL TOOLS (avec netcat-openbsd ajouté)
+# INSTALL TOOLS (avec netcat-openbsd ajoute)
 RUN apt-get update && apt-get install -y \
     git unzip curl wget netcat-openbsd \
     libicu-dev libzip-dev libpng-dev libjpeg-dev libfreetype6-dev \
@@ -53,18 +53,18 @@ RUN php bin/console importmap:install || true \
     && php bin/console cache:clear --env=prod --no-warmup || true \
     && php bin/console cache:warmup --env=prod || true
 
-# REACT BUILD - AVEC SECRETS depuis ARG
+# REACT BUILD - AVEC SECRETS
 RUN if [ -n "$REACT_REPO_URL" ]; then \
-        echo "🚀 Clonage du repo React : $REACT_REPO_URL"; \
+        echo "Clonage du repo React : $REACT_REPO_URL"; \
         git clone --branch ${REACT_BRANCH} --depth 1 ${REACT_REPO_URL} /tmp/react-app && \
         cd /tmp/react-app && \
-        echo "🔐 Création du .env.prod avec secrets..."; \
-        echo "VITE_API_URL=http://localhost:8081/api" > .env.prod && \
-        echo "VITE_API_UPLOAD=http://localhost:8081/uploads/media" >> .env.prod && \
-        echo "VITE_API_USERNAME=${VITE_API_USERNAME}" >> .env.prod && \
-        echo "VITE_API_PASSWORD=${VITE_API_PASSWORD}" >> .env.prod && \
-        echo "Contenu du .env.prod :"; \
-        cat .env.prod; \
+        echo "Creation du .env.production avec secrets depuis les ARG..."; \
+        printf "VITE_API_URL=%s\n" "${VITE_API_URL}" > .env.production && \
+        printf "VITE_API_UPLOAD=%s\n" "${VITE_API_UPLOAD}" >> .env.production && \
+        printf "VITE_API_USERNAME=%s\n" "${VITE_API_USERNAME}" >> .env.production && \
+        printf "VITE_API_PASSWORD=%s\n" "${VITE_API_PASSWORD}" >> .env.production && \
+        echo "Contenu du .env.production :"; \
+        cat .env.production; \
         echo "Installation npm..."; \
         npm install && \
         echo "Build React..."; \
@@ -72,12 +72,12 @@ RUN if [ -n "$REACT_REPO_URL" ]; then \
         echo "Copie vers /var/www/react/dist/..."; \
         mkdir -p /var/www/react && \
         cp -r dist /var/www/react/ && \
-        echo "React build terminé !"; \
+        echo "React build termine !"; \
         ls -la /var/www/react/dist/ && \
         cd / && rm -rf /tmp/react-app; \
     else \
-        echo "REACT_REPO_URL non défini - Skip du build React"; \
-        mkdir -p /var/www/react && echo "<h1>React non configuré</h1>" > /var/www/react/index.html; \
+        echo "REACT_REPO_URL non defini - Skip du build React"; \
+        mkdir -p /var/www/react && echo "<h1>React non configure</h1>" > /var/www/react/index.html; \
     fi
 
 RUN chown -R www-data:www-data /var/www/react
