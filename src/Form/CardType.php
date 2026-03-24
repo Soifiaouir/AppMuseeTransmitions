@@ -57,6 +57,7 @@ class CardType extends AbstractType
                 'label' => $label,
                 'required' => false,
                 'attr' => ['class' => 'form-control']
+
             ]);
         });
     }
