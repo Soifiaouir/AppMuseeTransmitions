@@ -64,6 +64,7 @@ class ThemeType extends AbstractType
                 'mapped' => false,
                 'required' => false,
                 'multiple' => true,
+                'help' => 'Vous pouvez sélectionner plusieurs fichiers en maintenant Ctrl ',
                 'constraints' => [
                     new All([
                         new File([

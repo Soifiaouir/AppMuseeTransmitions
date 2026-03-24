@@ -942,6 +942,14 @@ table em {
     gap: 0.5rem;
 }
 
+.formHelp {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-top: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    line-height: 1.5;
+}
+
 /* Bouton submit */
 .submitButton,
 button[type="submit"] {

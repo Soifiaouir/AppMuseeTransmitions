@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use App\Entity\Theme;
 
 #[IsGranted('ROLE_USER')]
 #[Route('/cards', name: 'cards_')]
@@ -47,6 +48,16 @@ final class CardsController extends AbstractController
     public function add(Request $request): Response
     {
         $card = new Card();
+
+        // Pré-sélectionner le thème si fourni en paramètre
+        $themeId = $request->query->getInt('themeId');
+        if ($themeId) {
+            $theme = $this->em->getRepository(Theme::class)->find($themeId);
+            if ($theme) {
+                $card->setTheme($theme);
+            }
+        }
+
         $formCard = $this->createForm(CardType::class, $card);
         $formCard->handleRequest($request);
 

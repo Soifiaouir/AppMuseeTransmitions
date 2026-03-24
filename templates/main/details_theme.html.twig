@@ -53,11 +53,11 @@
                         {% endif %}
                         <div class="info-item">
                             <strong>Nombre de cartes :</strong> {{ theme.cards|length }}
-                            <a href="{{ path('cards_add') }}"><button class="buttonCreate">Ajouter une Carte à ce thème</button></a>
+                            <a href="{{ path('cards_add', {'themeId': theme.id}) }}"><button class="buttonCreate">Ajouter une Carte à ce thème</button></a>
                         </div>
                         <div class="info-item">
                             <strong>Nombre de médias :</strong> {{ theme.medias|length }}
-                            <a href="{{ path('media_add') }}"><button class="buttonCreate">Ajouter un média à ce theme</button></a>
+                            <a href="{{ path('media_add', {'themeId': theme.id}) }}"><button class="buttonCreate">Ajouter un média à ce theme</button></a>
                         </div>
                     </div>
                 </div>

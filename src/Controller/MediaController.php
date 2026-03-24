@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use App\Entity\Theme;
 
 #[IsGranted('ROLE_USER')]
 #[Route('/media', name: 'media_')]
@@ -50,6 +51,15 @@ final class MediaController extends AbstractController
     public function add(Request $request): Response
     {
         $media = new Media();
+
+        $themeId = $request->query->getInt('themeId');
+        if ($themeId) {
+            $theme = $this->em->getRepository(Theme::class)->find($themeId);
+            if ($theme) {
+                $media->addTheme($theme);
+            }
+        }
+
         $formMedia = $this->createForm(MediaType::class, $media);
         $formMedia->handleRequest($request);
 
