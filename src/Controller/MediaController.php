@@ -109,8 +109,11 @@ final class MediaController extends AbstractController
     #[Route('/detail/{id}', name: 'detail', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function details(Media $media): Response
     {
+        $id = $media->getThemes()->first()->getId();
+
         return $this->render('media/details.html.twig', [
             'media' => $media,
+            'mediId' => $id
         ]);
     }
 

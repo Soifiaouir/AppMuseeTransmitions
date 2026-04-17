@@ -4,6 +4,41 @@
 
 <div class="form">
     {{ form_start(form) }}
-    {{ form_widget(form) }}
+
+    {% for field in form %}
+        {% if field.vars.name == 'moreInfos' %}
+            <div class="formError">
+                {{ form_errors(field) }}
+            </div>
+
+            <div class="formLabel">
+                {{ form_label(field) }}
+            </div>
+
+            <div class="formWidget">
+                <div
+                        class="more-infos-collection"
+                        data-index="{{ field|length }}"
+                        data-prototype="{{ form_widget(field.vars.prototype)|e('html_attr') }}"
+                >
+                    {% for moreInfo in field %}
+                        <div class="more-info-item">
+                            {{ form_row(moreInfo) }}
+                            <button type="button" class="btn btn-danger btn-sm remove-more-info-btn mt-2 w-100">
+                                Supprimer cette section
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" class="btn btn-secondary add-more-info-btn mt-3 w-100">
+                    + Ajouter une section supplémentaire
+                </button>
+            </div>
+        {% else %}
+            {{ form_row(field) }}
+        {% endif %}
+    {% endfor %}
+
     {{ form_end(form) }}
 </div>

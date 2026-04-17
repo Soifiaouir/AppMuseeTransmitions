@@ -16,7 +16,12 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CardRepository::class)]
-#[UniqueEntity(fields: ['title'], message: 'Ce titre de thème existe déjà !')]
+#[UniqueEntity(
+    fields: ['title'],
+    message: 'Ce titre de thème existe déjà !',
+    errorPath: 'title',
+    ignoreNull: true
+)]
 #[ApiResource(
     operations: [
         new Get(),

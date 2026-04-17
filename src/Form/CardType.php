@@ -95,7 +95,6 @@ class CardType extends AbstractType
                 'entry_options' => ['label' => false],
                 'attr' => [
                     'class' => 'more-infos-collection',
-                    'data-prototype' => ''
                 ],
                 'prototype' => true,
                 'prototype_name' => '__name__',
